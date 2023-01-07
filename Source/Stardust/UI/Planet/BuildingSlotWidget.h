@@ -3,14 +3,14 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "GameFramework/GameModeBase.h"
-#include "StardustGameModeBase.generated.h"
+#include "Blueprint/UserWidget.h"
+#include "BuildingSlotWidget.generated.h"
 
 /**
  * 
  */
 UCLASS()
-class STARDUST_API AStardustGameModeBase : public AGameModeBase
+class STARDUST_API UBuildingSlotWidget : public UUserWidget
 {
 	GENERATED_BODY()
 	
