@@ -2,26 +2,60 @@
 
 
 #include "GameActor.h"
+#include "Stardust/GameModes/GameFramework.h"
+#include "Stardust/Libraries/InputFunctionLibrary.h"
 
-// Sets default values
+
+
 AGameActor::AGameActor()
 {
- 	// Set this actor to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
-	PrimaryActorTick.bCanEverTick = true;
+	PrimaryActorTick.bCanEverTick = false;
 
+	ActorMeshComponent = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("Mesh Component"));
+	RootComponent = ActorMeshComponent;
 }
 
-// Called when the game starts or when spawned
 void AGameActor::BeginPlay()
 {
 	Super::BeginPlay();
-	
+
+	AGameFramework* GameMode = Cast<AGameFramework>(GetWorld()->GetAuthGameMode());
+	if (!GameMode) return;
+
+	GameMode->DayUpdateEvent.AddDynamic(this, &AGameActor::OnDayUpdate);
+	GameMode->MonthUpdateEvent.AddDynamic(this, &AGameActor::OnMonthUpdate);
+
+	OnBeginCursorOver.AddDynamic(this, &AGameActor::OnMouseHovered);
+	OnEndCursorOver.AddDynamic(this, &AGameActor::OnMouseUnhovered);
+
+	GameActorMappingContext = NewObject<UInputMappingContext>(this);
+
+	ClickAction = NewObject<UInputAction>(this);
+	ClickAction->ValueType = EInputActionValueType::Boolean;
+	ClickAction->bConsumeInput = false;
+
+	UInputFunctionLibrary::BindInputAction(this, TEXT("OnLeftMouseClick"), ETriggerEvent::Started, GameActorMappingContext, ClickAction, EKeys::LeftMouseButton);
+	UInputFunctionLibrary::AddInputMapping(GameActorMappingContext);
 }
 
-// Called every frame
-void AGameActor::Tick(float DeltaTime)
+void AGameActor::OnMouseHovered(AActor* TouchedActor)
 {
-	Super::Tick(DeltaTime);
-
+	if (TouchedActor == this)
+		bMouseOver = true;
 }
 
+void AGameActor::OnMouseUnhovered(AActor* TouchedActor)
+{
+	if (TouchedActor == this)
+		bMouseOver = false;
+}
+
+void AGameActor::OnLeftMouseClick()
+{
+	if (bMouseOver)
+		OnClicked();
+}
+
+void AGameActor::OnClicked() {}
+void AGameActor::OnDayUpdate() {}
+void AGameActor::OnMonthUpdate() {}
