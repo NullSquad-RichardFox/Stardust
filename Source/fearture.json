@@ -1,0 +1,114 @@
+[
+	{
+		"Name": "Default",
+		"bPlanetary": false,
+		"bMultiple": false,
+		"Rarity": 1,
+		"RequiredSize":
+		{
+			"X": 0,
+			"Y": 0
+		},
+		"RequiredType": [],
+		"Prerequisites": [],
+		"BuildableDistricts": [
+			"MetalsManufacture",
+			"GlassManufacture",
+			"SiliconManufacture",
+			"ElectronicsManufacture",
+			"PowerProduction"
+		],
+		"PlanetModifiers": [],
+		"DistrictModifiers": []
+	},
+	{
+		"Name": "MetalDeposits",
+		"bPlanetary": false,
+		"bMultiple": false,
+		"Rarity": 0.3,
+		"RequiredSize":
+		{
+			"X": 0,
+			"Y": 0
+		},
+		"RequiredType": [],
+		"Prerequisites": [],
+		"BuildableDistricts": [
+			"OreCollection"
+		],
+		"PlanetModifiers": [],
+		"DistrictModifiers": []
+	},
+	{
+		"Name": "CarbonReserves",
+		"bPlanetary": false,
+		"bMultiple": false,
+		"Rarity": 0.4,
+		"RequiredSize":
+		{
+			"X": 0,
+			"Y": 0
+		},
+		"RequiredType": [],
+		"Prerequisites": [],
+		"BuildableDistricts": [
+			"CarbonCollection"
+		],
+		"PlanetModifiers": [],
+		"DistrictModifiers": []
+	},
+	{
+		"Name": "SpralingShores",
+		"bPlanetary": false,
+		"bMultiple": false,
+		"Rarity": 0.2,
+		"RequiredSize":
+		{
+			"X": 0,
+			"Y": 0
+		},
+		"RequiredType": [],
+		"Prerequisites": [],
+		"BuildableDistricts": [
+			"SandCollection"
+		],
+		"PlanetModifiers": [],
+		"DistrictModifiers": []
+	},
+	{
+		"Name": "DeepOceans",
+		"bPlanetary": false,
+		"bMultiple": false,
+		"Rarity": 0.5,
+		"RequiredSize":
+		{
+			"X": 0,
+			"Y": 0
+		},
+		"RequiredType": [],
+		"Prerequisites": [],
+		"BuildableDistricts": [
+			"WaterCollection"
+		],
+		"PlanetModifiers": [],
+		"DistrictModifiers": []
+	},
+	{
+		"Name": "DenseForests",
+		"bPlanetary": false,
+		"bMultiple": false,
+		"Rarity": 0.25,
+		"RequiredSize":
+		{
+			"X": 0,
+			"Y": 0
+		},
+		"RequiredType": [],
+		"Prerequisites": [],
+		"BuildableDistricts": [
+			"FoodCollection"
+		],
+		"PlanetModifiers": [],
+		"DistrictModifiers": []
+	}
+]

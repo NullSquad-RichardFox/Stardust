@@ -89,7 +89,15 @@ void APlanet::CreatePlanet()
 	else PlanetType = EPlanetType::Ocean;
 
 	//Sets planet size range
-	FVector2D PlanetSizeRange(UStructDataLibrary::GetData(PlanetType)->Range);
+	FVector2D PlanetSizeRange;
+	if (UStructDataLibrary::GetData(PlanetType))
+	{
+		PlanetSizeRange = UStructDataLibrary::GetData(PlanetType)->Range;
+	}
+	else
+	{
+		PlanetSizeRange = FVector2D(5, 8);
+	}
 	PlanetSize = FMath::RandRange((int32)PlanetSizeRange.X, (int32)PlanetSizeRange.Y);
 
 	//Creates build slots

@@ -11,13 +11,20 @@ UStructDataLibrary::UStructDataLibrary()
 	BuildingDataTable = LoadDataTable("DataTable'/Game/DataTables/DT_BuildingData.DT_BuildingData'");
 	JobDataTable = LoadDataTable("DataTable'/Game/DataTables/DT_JobData.DT_JobData'");
 	DistrictModifiersDataTable = LoadDataTable("DataTable'/Game/DataTables/DT_DistrictModifierData.DT_DistrictModifierData'");
-	PlanetModifiersDataTable = LoadDataTable("DataTable'/Game/DataTables/DT_PlanetModifierData.DT_PlanetModifierData'");
+	PlanetModifiersDataTable = LoadDataTable("DataTable'/Game/DataTables/DT_PlanetModifierData.DT_PlanetModifierData'");										
 	FeatureDataTable = LoadDataTable("DataTable'/Game/DataTables/DT_FeaturesData.DT_FeaturesData'");
+	PlanetSizeRangeDataTable = LoadDataTable("DataTable'/Game/DataTables/DT_PlanetSizeRangeData.DT_PlanetSizeRangeData'");
 }
 
 UDataTable* UStructDataLibrary::LoadDataTable(const FName& FilePath)
 {
-	return Cast<UDataTable>(StaticLoadObject(UDataTable::StaticClass(), NULL, *FilePath.ToString()));
+	if (UDataTable* DT = Cast<UDataTable>(StaticLoadObject(UDataTable::StaticClass(), NULL, *FilePath.ToString())))
+	{
+		UE_LOG(LogTemp, Warning, TEXT("DT cast"))
+		return DT;
+	}
+
+	return nullptr;
 }
 
 const FPlanetSizeRangeData* UStructDataLibrary::GetData(EPlanetType PlanetType)

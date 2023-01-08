@@ -1,0 +1,183 @@
+[
+	{
+		"Name": "Greenhouse",
+		"RequiredDistrict": [],
+		"BuildTime": 100,
+		"BuildCost": 0,
+		"EnergyProduction": 0,
+		"EnergyUpkeep": 2,
+		"ResourceUpkeep":
+		{
+		},
+		"BuildingJobs":
+		{
+			"Farmer": 3
+		}
+	},
+	{
+		"Name": "SolarPanels",
+		"RequiredDistrict": [],
+		"BuildTime": 100,
+		"BuildCost": 0,
+		"EnergyProduction": 5,
+		"EnergyUpkeep": 0,
+		"ResourceUpkeep":
+		{
+		},
+		"BuildingJobs":
+		{
+			"MaintenanceWorker": 1
+		}
+	},
+	{
+		"Name": "WindTurbines",
+		"RequiredDistrict": [],
+		"BuildTime": 100,
+		"BuildCost": 0,
+		"EnergyProduction": 5,
+		"EnergyUpkeep": 0,
+		"ResourceUpkeep":
+		{
+		},
+		"BuildingJobs":
+		{
+			"MaintenanceWorker": 1
+		}
+	},
+	{
+		"Name": "Bioreactor",
+		"RequiredDistrict": [],
+		"BuildTime": 100,
+		"BuildCost": 0,
+		"EnergyProduction": 5,
+		"EnergyUpkeep": 0,
+		"ResourceUpkeep":
+		{
+			"Food": 5
+		},
+		"BuildingJobs":
+		{
+			"MaintenanceWorker": 2
+		}
+	},
+	{
+		"Name": "ElectrolysisReactor",
+		"RequiredDistrict": [],
+		"BuildTime": 100,
+		"BuildCost": 0,
+		"EnergyProduction": 3,
+		"EnergyUpkeep": 0,
+		"ResourceUpkeep":
+		{
+		},
+		"BuildingJobs":
+		{
+			"ElectrolysisEngineer": 2
+		}
+	},
+	{
+		"Name": "AdditionalMiningShafts",
+		"RequiredDistrict": [
+			"OreCollection",
+			"CarbonCollection",
+			"(INVALID)",
+			"WaterCollection",
+			"FoodCollection"
+		],
+		"BuildTime": 100,
+		"BuildCost": 0,
+		"EnergyProduction": 0,
+		"EnergyUpkeep": 2,
+		"ResourceUpkeep":
+		{
+		},
+		"BuildingJobs":
+		{
+			"DistrictDefault": 3
+		}
+	},
+	{
+		"Name": "ExtraFactorySpaces",
+		"RequiredDistrict": [
+			"MetalsManufacture",
+			"GlassManufacture",
+			"SiliconManufacture",
+			"ElectronicsManufacture"
+		],
+		"BuildTime": 100,
+		"BuildCost": 0,
+		"EnergyProduction": 0,
+		"EnergyUpkeep": 4,
+		"ResourceUpkeep":
+		{
+		},
+		"BuildingJobs":
+		{
+			"DistrictDefault": 3
+		}
+	},
+	{
+		"Name": "SecondaryReactorChamber",
+		"RequiredDistrict": [
+			"PowerProduction"
+		],
+		"BuildTime": 100,
+		"BuildCost": 0,
+		"EnergyProduction": 0,
+		"EnergyUpkeep": 2,
+		"ResourceUpkeep":
+		{
+		},
+		"BuildingJobs":
+		{
+			"DistrictDefault": 2
+		}
+	},
+	{
+		"Name": "TheatreSquare",
+		"RequiredDistrict": [],
+		"BuildTime": 100,
+		"BuildCost": 0,
+		"EnergyProduction": 0,
+		"EnergyUpkeep": 3,
+		"ResourceUpkeep":
+		{
+		},
+		"BuildingJobs":
+		{
+			"Actor": 3
+		}
+	},
+	{
+		"Name": "Zoo",
+		"RequiredDistrict": [],
+		"BuildTime": 100,
+		"BuildCost": 0,
+		"EnergyProduction": 0,
+		"EnergyUpkeep": 1,
+		"ResourceUpkeep":
+		{
+			"Food": 2
+		},
+		"BuildingJobs":
+		{
+			"AnimalKeeper": 2
+		}
+	},
+	{
+		"Name": "Aquarium",
+		"RequiredDistrict": [],
+		"BuildTime": 100,
+		"BuildCost": 0,
+		"EnergyProduction": 0,
+		"EnergyUpkeep": 1,
+		"ResourceUpkeep":
+		{
+			"Food": 2
+		},
+		"BuildingJobs":
+		{
+			"AnimalKeeper": 2
+		}
+	}
+]

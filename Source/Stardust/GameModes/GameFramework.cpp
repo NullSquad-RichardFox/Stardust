@@ -16,6 +16,12 @@ AGameFramework::AGameFramework()
 
 	PlayerControllerClass = ASpectatorPlayerController::StaticClass();
 	DefaultPawnClass = ASpectatorPlayerPawn::StaticClass();
+
+	ConstructorHelpers::FClassFinder<APlanet> PlanetClassObject(TEXT("Blueprint'/Game/BP_Planet.BP_Planet_C'"));
+	PlanetClass = PlanetClassObject.Class;
+
+	ConstructorHelpers::FClassFinder<AConnection> ConnectionClassObject(TEXT("Blueprint'/Game/BP_Connection.BP_Connection_C'"));
+	ConnectionClass = ConnectionClassObject.Class;
 }
 
 void AGameFramework::BeginPlay()
