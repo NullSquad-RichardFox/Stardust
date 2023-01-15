@@ -25,7 +25,7 @@ enum class EResourceType
 };
 
 UENUM()
-enum class EPlanetType
+enum class EPlanetType : uint8
 {
 	Ocean					UMETA(DisplayName = ""),
 	Barren					UMETA(DisplayName = ""),
@@ -33,7 +33,7 @@ enum class EPlanetType
 };
 
 UENUM()
-enum class EFeatureType
+enum class EFeatureType : uint8
 {
 	Default					UMETA(DisplayName = ""),
 	MetalDeposits			UMETA(DisplayName = ""),
@@ -44,7 +44,7 @@ enum class EFeatureType
 };
 
 UENUM()
-enum class EBuildingType
+enum class EBuildingType : uint8
 {
 	Greenhouse				UMETA(DisplayName = ""),
 	SolarPanels				UMETA(DisplayName = ""),
@@ -60,7 +60,7 @@ enum class EBuildingType
 };
 
 UENUM()
-enum class EJobType
+enum class EJobType : uint8
 {
 	Forger					UMETA(DisplayName = ""),
 	GlassWorker				UMETA(DisplayName = ""),
@@ -81,7 +81,7 @@ enum class EJobType
 };
 
 UENUM()
-enum class EDistrictType
+enum class EDistrictType : uint8
 {
 	OreCollection			UMETA(DisplayName = ""),
 	CarbonCollection		UMETA(DisplayName = ""),
@@ -96,13 +96,13 @@ enum class EDistrictType
 };
 
 UENUM()
-enum class EDistrictModifier
+enum class EDistrictModifier : uint8
 {
 	Mod						UMETA(DisplayName = "")
 };
 
 UENUM()
-enum class EPlanetModifier
+enum class EPlanetModifier : uint8
 {
 	Mod						UMETA(DisplayName = "")
 };
