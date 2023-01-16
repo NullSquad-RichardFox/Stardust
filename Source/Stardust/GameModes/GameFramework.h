@@ -45,6 +45,11 @@ public:
 	UPROPERTY(BlueprintAssignable, Category = "Time")
 	FMonthlyTimerSignature MonthUpdateEvent;
 
+	const float PopulationGrowthThreshold = 100.f;
+	const float PlanetStartingPopulationGrowth = 25.f;
+	const int32 PlanetStartingPopulation = 5;
+	const int32 PlanetStartingBuildStackCount = 1;
+
 private:
 	TArray<AGameActor*> GameActors;
 	TArray<AConnection*> GameActorConnections;

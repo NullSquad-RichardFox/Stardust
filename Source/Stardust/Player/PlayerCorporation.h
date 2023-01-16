@@ -5,9 +5,9 @@
 #include "CoreMinimal.h"
 #include "PlayerCorporation.generated.h"
 
-/**
- * 
- */
+
+class APlanet;
+
 UCLASS()
 class STARDUST_API APlayerCorporation : public AActor
 {
@@ -15,6 +15,7 @@ class STARDUST_API APlayerCorporation : public AActor
 	
 public:
 	bool Purchase(float Cost);
+	void AddPlanet(APlanet* Planet);
 
 private:
 	float Money;

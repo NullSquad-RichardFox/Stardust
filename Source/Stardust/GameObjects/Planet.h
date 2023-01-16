@@ -71,9 +71,24 @@ private:
 	void GeneratePlanetaryFeature(int32 FeatureIndex);
 
 	void HandleBuilding();
+	void RecalculateProduction();
+	void RecalculateModifiers();
+	void OccupyJobs();
+	void UpdateWidgets(int32 BuildSlotIndex);
+
+protected:
+	UPROPERTY(EditAnywhere)
+	UMaterialInterface* TerrestrialMaterial;
+	UPROPERTY(EditAnywhere)
+	UMaterialInterface* OceanMaterial;
+	UPROPERTY(EditAnywhere)
+	UMaterialInterface* BarrenMaterial;
 
 private:
 	friend UPlanetWidget;
+
+	TOptional<APlayerCorporation*> PlanetCorporation;
+	TSubclassOf<UPlanetWidget> PlanetWidgetClass;
 
 	UPROPERTY(EditAnywhere)
 	UCameraComponent* WidgetCamera;

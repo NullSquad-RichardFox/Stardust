@@ -5,6 +5,8 @@
 #include "Camera/CameraComponent.h"
 #include "Stardust/GameModes/GameFramework.h"
 #include "Stardust/Player/PlayerCorporation.h"
+#include "Blueprint/WidgetBlueprintLibrary.h"
+#include "Stardust/UI/Planet/PlanetWidget.h"
 
 
 
@@ -12,6 +14,10 @@ APlanet::APlanet()
 {
 	WidgetCamera = CreateDefaultSubobject<UCameraComponent>(TEXT("Camera"));
 	WidgetCamera->SetupAttachment(RootComponent);
+
+	TerrestrialMaterial = CreateDefaultSubobject<UMaterialInterface>(TEXT("Terrestrial Material"));
+	OceanMaterial = CreateDefaultSubobject<UMaterialInterface>(TEXT("Ocean Material"));
+	BarrenMaterial = CreateDefaultSubobject<UMaterialInterface>(TEXT("Barren Material"));
 }
 
 void APlanet::BeginPlay()
@@ -25,25 +31,53 @@ void APlanet::OnDayUpdate()
 {
 	Super::OnDayUpdate();
 
+	if (BuildQueue.Num())
+		HandleBuilding();
+
 	PartialPopulation += PopulationGrowth / 30;
 	if (PartialPopulation >= PopulationGrowthThreshold)
 	{
 		Population++;
 		PartialPopulation -= PopulationGrowthThreshold;
+
+		UnemployedPopulation++;
+		OccupyJobs();
 	}
 }
 
 void APlanet::OnMonthUpdate()
 {
 	Super::OnMonthUpdate();
+
+	RecalculateProduction();
 }
 
 void APlanet::OnClicked()
 {
 	Super::OnClicked();
 
-	UE_LOG(LogTemp, Warning, TEXT("[%s][%i]: OnClicked"), *GetName(), __LINE__);
+	if (!PlanetWidgetClass) return;
 
+	TArray<UUserWidget*> Widgets;
+	UWidgetBlueprintLibrary::GetAllWidgetsOfClass(GetWorld(), Widgets, UPlanetWidget::StaticClass(), false);
+
+	if (Widgets.IsValidIndex(0))
+	{
+		if (!Widgets[0]->IsInViewport())
+		{
+			UPlanetWidget* PlanetWidget = CreateWidget<UPlanetWidget>(GetWorld(), PlanetWidgetClass);
+			PlanetWidget->AddToViewport();
+			PlanetWidget->PreloadData(this);
+		}
+	}
+	else
+	{
+		UPlanetWidget* PlanetWidget = CreateWidget<UPlanetWidget>(GetWorld(), PlanetWidgetClass);
+		PlanetWidget->AddToViewport();
+		PlanetWidget->PreloadData(this);
+	}
+
+	UE_LOG(LogTemp, Warning, TEXT("[%s][%i]: OnClicked"), *GetName(), __LINE__);
 }
 
 
@@ -63,8 +97,8 @@ void APlanet::CreatePlanet()
 	if (!GameMode)
 		return;
 
-	//if (!TerrestrialMaterial || !OceanMaterial || !BarrenMaterial)
-	//	return;
+	if (!TerrestrialMaterial || !OceanMaterial || !BarrenMaterial)
+		return;
 
 
 	//Sets random planet type
@@ -75,15 +109,15 @@ void APlanet::CreatePlanet()
 		switch (PlanetType)
 		{
 		case EPlanetType::Ocean:
-			//MeshComponent->SetMaterial(0, OceanMaterial);
+			ActorMeshComponent->SetMaterial(0, OceanMaterial);
 			break;
 
 		case EPlanetType::Barren:
-			//MeshComponent->SetMaterial(0, BarrenMaterial);
+			ActorMeshComponent->SetMaterial(0, BarrenMaterial);
 			break;
 
 		case EPlanetType::Terrestrial:
-			//MeshComponent->SetMaterial(0, TerrestrialMaterial);
+			ActorMeshComponent->SetMaterial(0, TerrestrialMaterial);
 			break;
 		}
 	}
@@ -119,7 +153,7 @@ void APlanet::CreatePlanet()
 			GenerateFeature(i, BuildSlot);
 	}
 
-	//RecalculateModifiers();
+	RecalculateModifiers();
 
 	//Logging
 	UE_LOG(LogTemp, Warning, TEXT("--------------------"))
@@ -199,21 +233,21 @@ void APlanet::GeneratePlanetaryFeature(int32 FeatureIndex)
 
 void APlanet::ColonizePlanet(APlayerCorporation* Corporation)
 {
-//	if (Corporation)
-//	{
-//		PlanetCorporation = Corporation;
-//		PlanetCorporation.GetValue()->AddPlanet(this);
-//
-//		if (AGameControl* GameMode = Cast<AGameControl>(GetWorld()->GetAuthGameMode()))
-//		{
-//			MaxBuildStackCount = GameMode->PlanetStartingBuildStackCount;
-//
-//			Population = GameMode->PlanetStartingPopulation;
-//			UnemployedPopulation = Population;
-//			PopulationGrowth = GameMode->PlanetStartingPopulationGrowth;
-//			PopulationGrowthThreshold = GameMode->PopulationGrowthThreshold;
-//		}
-//	}
+	if (Corporation)
+	{
+		PlanetCorporation = Corporation;
+		PlanetCorporation.GetValue()->AddPlanet(this);
+
+		if (AGameFramework* GameMode = Cast<AGameFramework>(GetWorld()->GetAuthGameMode()))
+		{
+			MaxBuildStackCount = GameMode->PlanetStartingBuildStackCount;
+
+			Population = GameMode->PlanetStartingPopulation;
+			UnemployedPopulation = Population;
+			PopulationGrowth = GameMode->PlanetStartingPopulationGrowth;
+			PopulationGrowthThreshold = GameMode->PopulationGrowthThreshold;
+		}
+	}
 }
 
 
@@ -221,10 +255,11 @@ void APlanet::ColonizePlanet(APlayerCorporation* Corporation)
 
 const UBuildRequest* APlanet::BuildBuilding(int32 BuildSlotIndex, EBuildingType BuildingType)
 {
+	if (!PlanetCorporation.IsSet()) return nullptr;
 	if (!BuildSlots.IsValidIndex(BuildSlotIndex)) return nullptr;
 
 	const FBuildingData* Data = UStructDataLibrary::GetData(BuildingType);
-	APlayerCorporation* PlayerCorp = Cast<APlayerCorporation>(this);
+	APlayerCorporation* PlayerCorp = Cast<APlayerCorporation>(PlanetCorporation.GetValue());
 
 	if (!Data) return nullptr;
 	if (!PlayerCorp) return nullptr;
@@ -244,10 +279,11 @@ const UBuildRequest* APlanet::BuildBuilding(int32 BuildSlotIndex, EBuildingType 
 
 const UBuildRequest* APlanet::BuildDistrict(int32 BuildSlotIndex, EDistrictType DistrictType)
 {
+	if (!PlanetCorporation.IsSet()) return nullptr;
 	if (!BuildSlots.IsValidIndex(BuildSlotIndex)) return nullptr;
 
 	const FDistrictData* Data = UStructDataLibrary::GetData(DistrictType, 1);
-	APlayerCorporation* PlayerCorp = Cast<APlayerCorporation>(this);
+	APlayerCorporation* PlayerCorp = Cast<APlayerCorporation>(PlanetCorporation.GetValue());
 
 	if (!Data) return nullptr;
 	if (!PlayerCorp) return nullptr;
@@ -266,10 +302,11 @@ const UBuildRequest* APlanet::BuildDistrict(int32 BuildSlotIndex, EDistrictType 
 
 const UBuildRequest* APlanet::UpgradeDistrict(int32 BuildSlotIndex)
 {
+	if (!PlanetCorporation.IsSet()) return nullptr;
 	if (!BuildSlots.IsValidIndex(BuildSlotIndex)) return nullptr;
 
 	const FDistrictData* Data = UStructDataLibrary::GetData(BuildSlots[BuildSlotIndex].District.DistrictType, BuildSlots[BuildSlotIndex].District.DistrictTier + 1);
-	APlayerCorporation* PlayerCorp = Cast<APlayerCorporation>(this);
+	APlayerCorporation* PlayerCorp = Cast<APlayerCorporation>(PlanetCorporation.GetValue());
 
 	if (!Data) return nullptr;
 	if (!PlayerCorp) return nullptr;
@@ -310,10 +347,93 @@ void APlanet::HandleBuilding()
 			BuildSlots[Request->BuildSlotIndex].District.AddBuilding(Type);
 		}
 
+		UpdateWidgets(Request->BuildSlotIndex);
+		OccupyJobs();
+
 		Request->Status = EBuildingStatus::Completed;
 		BuildQueue.RemoveAt(i, 1, true);
 	}
 }
+
+void APlanet::RecalculateModifiers()
+{
+	ProductionModifiers.Empty();
+	UpkeepModifiers.Empty();
+
+	for (const EPlanetModifier& Modifier : PlanetaryModifiers)
+	{
+		for (const TPair<EResourceType, float>& ResourceModifier : UStructDataLibrary::GetData(Modifier)->ProductionModifiers)
+			ProductionModifiers.FindOrAdd(ResourceModifier.Key) += ResourceModifier.Value;
+
+		for (const TPair<EResourceType, float>& ResourceModifier : UStructDataLibrary::GetData(Modifier)->UpkeepModifiers)
+			UpkeepModifiers.FindOrAdd(ResourceModifier.Key) += ResourceModifier.Value;
+	}
+}
+
+void APlanet::RecalculateProduction()
+{
+	ResourceProduction.Empty();
+	ResourceUpkeep.Empty();
+
+	EnergyProduction = 0;
+	EnergyConsumption = 0;
+
+	for (const auto& [District, Features] : BuildSlots)
+	{
+		EnergyProduction += District.EnergyProduction;
+		EnergyConsumption += District.EnergyUpkeep;
+
+		for (const TPair<EResourceType, float>& Production : District.GetDistrictProduction())
+		{
+			ResourceProduction.FindOrAdd(Production.Key) += Production.Value * (ProductionModifiers.Contains(Production.Key) ? ProductionModifiers[Production.Key] : 1);
+			ResourceStorage.FindOrAdd(Production.Key) += Production.Value * (ProductionModifiers.Contains(Production.Key) ? ProductionModifiers[Production.Key] : 1);
+		}
+
+		for (const TPair<EResourceType, float>& Upkeep : District.GetDistrictUpkeep())
+		{
+			ResourceUpkeep.FindOrAdd(Upkeep.Key) += Upkeep.Value * (UpkeepModifiers.Contains(Upkeep.Key) ? UpkeepModifiers[Upkeep.Key] : 1);
+			ResourceStorage.FindOrAdd(Upkeep.Key) -= Upkeep.Value * (UpkeepModifiers.Contains(Upkeep.Key) ? UpkeepModifiers[Upkeep.Key] : 1);
+		}
+	}
+
+	EnergyFinal = EnergyProduction - EnergyConsumption;
+}
+
+void APlanet::OccupyJobs()
+{
+	for (int32 i = 0; i < UnemployedPopulation; i++)
+	{
+		bool bJobFound = false;
+		int32 Index = 0;
+
+		do
+		{
+			if (BuildSlots[Index].District.GetFreeJob())
+			{
+				BuildSlots[Index].District.PopulateJob(*BuildSlots[Index].District.GetFreeJob());
+				bJobFound = true;
+				UnemployedPopulation--;
+			}
+			else
+			{
+				Index++;
+			}
+
+		} while (!bJobFound && Index < BuildSlots.Num());
+	}
+}
+
+void APlanet::UpdateWidgets(int32 BuildSlotIndex)
+{
+	TArray<UUserWidget*> Widgets;
+	UWidgetBlueprintLibrary::GetAllWidgetsOfClass(GetWorld(), Widgets, UPlanetWidget::StaticClass(), false);
+
+	if (!Widgets.Num()) return;
+
+	if (UPlanetWidget* PlanetWidget = Cast<UPlanetWidget>(Widgets[0]))
+		PlanetWidget->BuildingUpdate(BuildSlotIndex);
+}
+
 
 
 const FBuildSlot& APlanet::GetBuildSlot(int32 Index)

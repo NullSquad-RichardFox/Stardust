@@ -13,3 +13,9 @@ bool APlayerCorporation::Purchase(float Cost)
 	
 	return false;
 }
+
+
+void APlayerCorporation::AddPlanet(APlanet* Planet)
+{
+
+}
