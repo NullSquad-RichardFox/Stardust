@@ -29,6 +29,8 @@ public:
 	void BuildingUpdate(int32 BuildSlotIndex);
 	void BuildSlotClicked(int32 BuildSlotIndex);
 
+	void AddQueueItem(UObject* Item);
+
 protected:
 	virtual void NativeOnInitialized() override;
 	virtual void RemoveFromParent() override;

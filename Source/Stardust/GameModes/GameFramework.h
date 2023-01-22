@@ -25,6 +25,12 @@ public:
 
 	bool FindGameActor(AGameActor* Item, int32& Index);
 
+
+	UFUNCTION(BlueprintCallable)
+	FString GetDisplayTimeString();
+	UFUNCTION(BlueprintCallable)
+	void SetTimeSpeedModifier(float Value);
+
 protected:
 	virtual void BeginPlay() override;
 	virtual void Tick(float DeltaTime) override;
@@ -56,6 +62,7 @@ private:
 
 	TSubclassOf<APlanet> PlanetClass;
 	TSubclassOf<AConnection> ConnectionClass;
+	TSubclassOf<UUserWidget> MainUIClass;
 
 	FVector GameplayTime = FVector(1.f, 1.f, 2200.f);
 

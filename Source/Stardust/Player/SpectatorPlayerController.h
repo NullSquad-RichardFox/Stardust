@@ -14,4 +14,9 @@ class STARDUST_API ASpectatorPlayerController : public APlayerController
 {
 	GENERATED_BODY()
 	
+public:
+	ASpectatorPlayerController();
+
+protected:
+	virtual void SetupInputComponent() override;
 };

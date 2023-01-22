@@ -26,6 +26,9 @@ void UDistrictMenu::NativeOnInitialized()
 		GameMode->MonthUpdateEvent.AddDynamic(this, &UDistrictMenu::MonthlyUpdate);
 		FeatureInfoHitBox->OnHovered.AddDynamic(this, &UDistrictMenu::FeatureInfoHovered);
 		FeatureInfoHitBox->OnUnhovered.AddDynamic(this, &UDistrictMenu::FeatureInfoUnhovered);
+
+		UpgradeHitBox->OnClicked.AddDynamic(this, &UDistrictMenu::UpgradeDistrict);
+		RemoveHitBox->OnClicked.AddDynamic(this, &UDistrictMenu::DowngradeDistrict);
 	}
 }
 
@@ -59,6 +62,8 @@ void UDistrictMenu::PreloadData(AActor* ParentActor)
 
 	OwningActor = ParentActor;
 	CurrentBuildSlotIndex = -1;
+	ListBuildingShownIndex = -1;
+	bCanBuildBuildings = true;
 }
 
 void UDistrictMenu::BuildingUpdate(int32 BuildSlotIndex)
@@ -128,21 +133,6 @@ bool UDistrictMenu::Reload(int32 BuildSlotIndex)
 	return true;
 }
 
-void UDistrictMenu::BuildingSlotClickHandle()
-{
-	if (BuildingList->GetVisibility() == ESlateVisibility::Collapsed)
-	{
-		PopulateBuildingList();
-		DisplayBuildingList();
-		DisplayBuildingListBlueprint();
-	}
-	else
-	{
-		DisplayNormal();
-		DisplayNormalBlueprint();
-	}
-}
-
 void UDistrictMenu::FeatureInfoHovered()
 {
 	if (CurrentBuildSlotIndex == -1) return;
@@ -173,6 +163,22 @@ void UDistrictMenu::FeatureInfoUnhovered()
 	FeatureInfoText->SetVisibility(ESlateVisibility::Collapsed);
 }
 
+void UDistrictMenu::UpgradeDistrict()
+{
+	if (APlanet* OwningPlanet = Cast<APlanet>(OwningActor))
+	{
+		OwningPlanet->UpgradeDistrict(CurrentBuildSlotIndex);
+	}
+}
+
+void UDistrictMenu::DowngradeDistrict()
+{
+	if (APlanet* OwningPlanet = Cast<APlanet>(OwningActor))
+	{
+		OwningPlanet->DowngradeDistrict(CurrentBuildSlotIndex);
+	}
+}
+
 void UDistrictMenu::CloseWidget()
 {
 	if (UPlanetWidget* PlanetWidget = Cast<UPlanetWidget>(GetParent()->GetOuter()->GetOuter()))
@@ -183,13 +189,44 @@ void UDistrictMenu::CloseWidget()
 
 
 
-void UDistrictMenu::LockDistrictList()
+void UDistrictMenu::SetCanBuildDistricts(bool bCanBuild)
 {
-	DistrictList->SetIsEnabled(false);
-	AlreadyBuildingIcon->SetVisibility(ESlateVisibility::Visible);
-	AlreadyBuildingBackgroundEffect->SetVisibility(ESlateVisibility::Visible);
+	DistrictList->SetIsEnabled(bCanBuild);
+
+	if (!bCanBuild)
+	{
+		AlreadyBuildingIcon->SetVisibility(ESlateVisibility::Visible);
+		AlreadyBuildingBackgroundEffect->SetVisibility(ESlateVisibility::Visible);
+	}
+	else
+	{
+		AlreadyBuildingIcon->SetVisibility(ESlateVisibility::Collapsed);
+		AlreadyBuildingBackgroundEffect->SetVisibility(ESlateVisibility::Collapsed);
+	}
 }
 
+void UDistrictMenu::SetCanBuildBuildings(bool bCanBuild)
+{
+	bCanBuildBuildings = bCanBuild;
+	BuildingList->SetIsEnabled(bCanBuild);
+}
+
+void UDistrictMenu::BuildingSlotClicked(int32 BuildingSlotIndex)
+{
+	if (BuildingList->GetVisibility() == ESlateVisibility::Collapsed || ListBuildingShownIndex != BuildingSlotIndex)
+	{
+		PopulateBuildingList();
+		DisplayBuildingList();
+		DisplayBuildingListBlueprint();
+	}
+	else
+	{
+		ListBuildingShownIndex = -1;
+
+		DisplayNormal();
+		DisplayNormalBlueprint();
+	}
+}
 
 
 

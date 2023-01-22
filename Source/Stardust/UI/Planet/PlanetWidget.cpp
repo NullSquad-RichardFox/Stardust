@@ -164,6 +164,15 @@ void UPlanetWidget::BuildingUpdate(int32 BuildSlotIndex)
 	EnergyBar->SetCount(OwningPlanet->EnergyFinal);
 
 	DistrictMenu->BuildingUpdate(BuildSlotIndex);
+	DistrictMenu->SetCanBuildBuildings(true);
+	DistrictMenu->SetCanBuildDistricts(true);
+
+	PlanetMenu->RemoveQueueItem();
+}
+
+void UPlanetWidget::AddQueueItem(UObject* Item)
+{
+	PlanetMenu->AddQueueItem(Item);
 }
 
 void UPlanetWidget::BuildSlotClicked(int32 BuildSlotIndex)
@@ -197,7 +206,6 @@ void UPlanetWidget::RemoveFromParent()
 			if (UBuildSlotWidget* BuildSlot = Cast<UBuildSlotWidget>(Child))
 			{
 				BuildSlot->RemoveFromParent();
-				UE_LOG(LogTemp, Warning, TEXT("BuildSlot removed"))
 			}
 	}
 

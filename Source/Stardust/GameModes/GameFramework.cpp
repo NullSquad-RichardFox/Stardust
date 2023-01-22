@@ -4,9 +4,11 @@
 #include "GameFramework.h"
 #include "Stardust/Player/SpectatorPlayerController.h"
 #include "Stardust/Player/SpectatorPlayerPawn.h"
+#include "Stardust/Player/PlayerCorporation.h"
 #include "Stardust/GameObjects/GameActor.h"
 #include "Stardust/GameObjects/Connection.h"
 #include "Stardust/GameObjects/Planet.h"
+#include "Blueprint/UserWidget.h"
 
 
 
@@ -17,18 +19,25 @@ AGameFramework::AGameFramework()
 	PlayerControllerClass = ASpectatorPlayerController::StaticClass();
 	DefaultPawnClass = ASpectatorPlayerPawn::StaticClass();
 
-	ConstructorHelpers::FClassFinder<APlanet> PlanetClassObject(TEXT("Blueprint'/Game/BP_Planet.BP_Planet_C'"));
+	ConstructorHelpers::FClassFinder<APlanet> PlanetClassObject(TEXT("Blueprint'/Game/Blueprints/GameObjects/BP_Planet.BP_Planet_C'"));
 	PlanetClass = PlanetClassObject.Class;
 
-	ConstructorHelpers::FClassFinder<AConnection> ConnectionClassObject(TEXT("Blueprint'/Game/BP_Connection.BP_Connection_C'"));
+	ConstructorHelpers::FClassFinder<AConnection> ConnectionClassObject(TEXT("Blueprint'/Game/Blueprints/GameObjects/BP_Connection.BP_Connection_C'"));
 	ConnectionClass = ConnectionClassObject.Class;
+
+	ConstructorHelpers::FClassFinder<UUserWidget> MainUIClassObject(TEXT("WidgetBlueprint'/Game/Blueprints/UI/WBP_TimeUI.WBP_TimeUI_C'"));
+	MainUIClass = MainUIClassObject.Class;
 }
 
 void AGameFramework::BeginPlay()
 {
 	Super::BeginPlay();
 
+	if (MainUIClass)
+		CreateWidget(GetWorld(), MainUIClass)->AddToViewport(999);
+
 	GenerateMap(10);
+	GetWorld()->SpawnActor<APlayerCorporation>();
 }
 
 void AGameFramework::DayUpdate()
@@ -184,4 +193,14 @@ void AGameFramework::GenerateConnections(float MaxPlanetConnectionLength, int32 
 bool AGameFramework::FindGameActor(AGameActor* Item, int32& Index)
 {
 	return GameActors.Find(Item, Index);
+}
+
+FString AGameFramework::GetDisplayTimeString()
+{
+	return FString::FromInt(GameplayTime.X) + ". " + FString::FromInt(GameplayTime.Y) + ". " + FString::FromInt(GameplayTime.Z);
+}
+
+void AGameFramework::SetTimeSpeedModifier(float Value)
+{
+	TimeSpeedMultiplier = FMath::Clamp(Value, 0, 100.f);
 }

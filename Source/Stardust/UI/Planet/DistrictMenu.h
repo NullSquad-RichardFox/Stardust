@@ -25,7 +25,11 @@ public:
 	void PreloadData(AActor* OwningActor);
 	bool Reload(int32 BuildSlotIndex);
 	void BuildingUpdate(int32 BuildSlotIndex);
-	void LockDistrictList();
+
+	void BuildingSlotClicked(int32 BuildingSlotIndex);
+
+	void SetCanBuildBuildings(bool bCanBuild);
+	void SetCanBuildDistricts(bool bCanBuild);
 
 protected:
 	UFUNCTION(BlueprintImplementableEvent)
@@ -46,11 +50,13 @@ private:
 	void FeatureInfoHovered();
 	UFUNCTION()
 	void FeatureInfoUnhovered();
+	UFUNCTION()
+	void UpgradeDistrict();
+	UFUNCTION()
+	void DowngradeDistrict();
 
 	UFUNCTION()
 	void CloseWidget();
-	UFUNCTION()
-	void BuildingSlotClickHandle();
 
 	void DisplayDistrictList();
 	void DisplayBuildingList();
@@ -105,4 +111,7 @@ private:
 
 	AActor* OwningActor;
 	int32 CurrentBuildSlotIndex;
+
+	bool bCanBuildBuildings;
+	int32 ListBuildingShownIndex;
 };

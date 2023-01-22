@@ -172,3 +172,32 @@ private:
 	float InAmount, InTravelTime, InReturns;
 	TMap<EResourceType, float> InImport, InExport;
 };
+
+UCLASS(BlueprintType)
+class STARDUST_API UBuildQueueListData : public UObject
+{
+	GENERATED_BODY()
+
+public:
+	void MakeBuildQueueData(FText BuildingName, const float* BuildTime, float TotalBuildTime, int32 QueueIndex)
+	{
+		InBuildingName = BuildingName;
+		InBuildTime = BuildTime;
+		InTotalBuildTime = TotalBuildTime;
+		InQueueIndex = QueueIndex;
+	}
+
+	void GetBuildQueueData(FText& BuildingName, const float*& BuildTime, float& TotalBuildTime, int32& QueueIndex)
+	{
+		BuildingName = InBuildingName;
+		BuildTime = InBuildTime;
+		TotalBuildTime = InTotalBuildTime;
+		QueueIndex = InQueueIndex;
+	}
+
+private:
+	int32 InQueueIndex;
+	FText InBuildingName;
+	const float* InBuildTime;
+	float InTotalBuildTime;
+};

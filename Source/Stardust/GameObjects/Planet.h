@@ -41,13 +41,14 @@ UCLASS()
 class STARDUST_API APlanet : public AGameActor
 {
 	GENERATED_BODY()
-	
+
 public:
 	APlanet();
 
 	const UBuildRequest* BuildBuilding(int32 BuildSlotIndex, EBuildingType BuildingType);
 	const UBuildRequest* BuildDistrict(int32 BuildSlotIndex, EDistrictType DistrictType);
 	const UBuildRequest* UpgradeDistrict(int32 BuildSlotIndex);
+	void DowngradeDistrict(int32 BuildSlotIndex);
 	void ColonizePlanet(APlayerCorporation* Corporation);
 
 	const FBuildSlot& GetBuildSlot(int32 Index);
@@ -78,17 +79,20 @@ private:
 
 protected:
 	UPROPERTY(EditAnywhere)
-	UMaterialInterface* TerrestrialMaterial;
+		UMaterialInterface* TerrestrialMaterial;
 	UPROPERTY(EditAnywhere)
-	UMaterialInterface* OceanMaterial;
+		UMaterialInterface* OceanMaterial;
 	UPROPERTY(EditAnywhere)
-	UMaterialInterface* BarrenMaterial;
+		UMaterialInterface* BarrenMaterial;
 
 private:
 	friend UPlanetWidget;
 
 	TOptional<APlayerCorporation*> PlanetCorporation;
+	UPROPERTY(EditAnywhere, meta = (AllowPrivateAccess = true))
 	TSubclassOf<UPlanetWidget> PlanetWidgetClass;
+
+	UPlanetWidget* PlanetWidget;
 
 	UPROPERTY(EditAnywhere)
 	UCameraComponent* WidgetCamera;

@@ -17,6 +17,9 @@ class STARDUST_API UPlanetMenu : public UUserWidget
 public:
 	void Preload(AActor* ParentActor);
 
+	void AddQueueItem(UObject* Item);
+	void RemoveQueueItem();
+
 protected:
 	UFUNCTION()
 	void MonthlyUpdate();
@@ -27,6 +30,8 @@ protected:
 	UListView* ResourceList;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Components", meta = (BindWidget))
 	UListView* TradeRouteList;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Components", meta = (BindWidget))
+	UListView* BuildQueueList;
 
 private:
 	AActor* OwningActor;

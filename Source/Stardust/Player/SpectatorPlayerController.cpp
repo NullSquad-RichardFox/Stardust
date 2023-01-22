@@ -3,3 +3,14 @@
 
 #include "SpectatorPlayerController.h"
 
+ASpectatorPlayerController::ASpectatorPlayerController()
+{
+	bShowMouseCursor = true;
+	bEnableMouseOverEvents = true;
+	bEnableClickEvents = true;
+}
+
+void ASpectatorPlayerController::SetupInputComponent()
+{
+	Super::SetupInputComponent();
+}

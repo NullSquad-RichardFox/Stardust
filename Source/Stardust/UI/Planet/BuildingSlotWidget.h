@@ -14,7 +14,14 @@ class STARDUST_API UBuildingSlotWidget : public UUserWidget
 {
 	GENERATED_BODY()
 	
+private:
+	void OnClicked();
+
 protected:
 	UPROPERTY(EditAnywhere, Category = "Components", meta = (BindWidget))
 	UButton* HitBox;
+
+private:
+	int32 SlotIndex;
+
 };

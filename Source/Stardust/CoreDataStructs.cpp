@@ -320,6 +320,32 @@ void FDistrict::UpgradeDistrict(EDistrictType Type)
 	}
 }
 
+void FDistrict::DowngradeDistrict()
+{
+	if (DistrictTier == 0) return;
+
+	if (const FDistrictData* DistrictData = UStructDataLibrary::GetData(DistrictType, DistrictTier))
+	{
+		EnergyProduction -= DistrictData->EnergyProduction;
+		EnergyUpkeep -= DistrictData->EnergyUpkeep;
+		BuildSlots -= DistrictData->BuildSlots;
+
+		for (const TPair<EJobType, int32>& Job : DistrictData->DistrictJobs)
+		{
+			if (Job.Key == EJobType::DistrictDefault)
+			{
+				DistrictJobs.FindOrAdd(FDistrict::GetDistrictDefaultJob(DistrictType)) -= Job.Value;
+			}
+			else
+			{
+				DistrictJobs.FindOrAdd(Job.Key) -= Job.Value;
+			}
+		}
+	}
+
+	DistrictTier--;
+}
+
 TOptional<EJobType> FDistrict::GetFreeJob() const
 {
 	for (const TPair<EJobType, int32>& Job : DistrictJobs)

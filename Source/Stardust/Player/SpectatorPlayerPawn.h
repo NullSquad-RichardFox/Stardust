@@ -27,6 +27,7 @@ protected:
 	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
 
 private:
+	UFUNCTION()
 	void HandleMovement(const FInputActionValue& ActionValue);
 
 protected:

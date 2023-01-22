@@ -46,3 +46,16 @@ void UPlanetMenu::Preload(AActor* ParentActor)
 		ResourceList->AddItem(Item);
 	}
 }
+
+void UPlanetMenu::AddQueueItem(UObject* Item)
+{
+	BuildQueueList->AddItem(Item);
+}
+
+void UPlanetMenu::RemoveQueueItem()
+{
+	UObject* Item = BuildQueueList->GetItemAt(0);
+	if (!Item) return;
+
+	BuildQueueList->RemoveItem(Item);
+}

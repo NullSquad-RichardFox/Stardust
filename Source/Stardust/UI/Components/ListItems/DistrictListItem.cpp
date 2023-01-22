@@ -58,7 +58,7 @@ void UDistrictListItem::ItemClickedHandle()
 		OwningPlanet->BuildDistrict(BuildSlotIndex, DistrictType);
 		if (UDistrictMenu* DistrictMenu = Cast<UDistrictMenu>(GetOuter()->GetOuter()))
 		{
-			DistrictMenu->LockDistrictList();
+			DistrictMenu->SetCanBuildDistricts(false);
 		}
 	}
 }

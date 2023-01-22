@@ -314,6 +314,7 @@ public:
 	const TMap<EJobType, int32>& GetOccupiedJobs() const;
 
 	void UpgradeDistrict(EDistrictType Type);
+	void DowngradeDistrict();
 
 	static EJobType GetDistrictDefaultJob(EDistrictType Type);
 
@@ -325,28 +326,28 @@ private:
 
 public:
 	UPROPERTY(VisibleAnywhere)
-		int32 DistrictTier;
+	int32 DistrictTier;
 	UPROPERTY(VisibleAnywhere)
-		EDistrictType DistrictType;
+	EDistrictType DistrictType;
 
 	UPROPERTY(VisibleAnywhere)
-		float EnergyProduction;
+	float EnergyProduction;
 	UPROPERTY(VisibleAnywhere)
-		float EnergyUpkeep;
+	float EnergyUpkeep;
 
 	UPROPERTY(VisibleAnywhere)
-		int32 BuildSlots;
+	int32 BuildSlots;
 
 private:
 	UPROPERTY(VisibleAnywhere, meta = (AllowPrivateAccess = true))
-		TMap<EJobType, int32> OccupiedJobs;
+	TMap<EJobType, int32> OccupiedJobs;
 	UPROPERTY(VisibleAnywhere, meta = (AllowPrivateAccess = true))
-		TMap<EJobType, int32> DistrictJobs;
+	TMap<EJobType, int32> DistrictJobs;
 	UPROPERTY(VisibleAnywhere, meta = (AllowPrivateAccess = true))
-		TArray<EBuildingType> Buildings;
+	TArray<EBuildingType> Buildings;
 
 	UPROPERTY(VisibleAnywhere, meta = (AllowPrivateAccess = true))
-		TArray<EDistrictModifier> ResourceModifiers;
+	TArray<EDistrictModifier> ResourceModifiers;
 
 	TMap<EResourceType, float> ProductionModifiers;
 	TMap<EResourceType, float> UpkeepModifiers;

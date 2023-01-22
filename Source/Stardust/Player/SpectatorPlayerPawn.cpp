@@ -32,7 +32,7 @@ void ASpectatorPlayerPawn::SetupPlayerInputComponent(UInputComponent* PlayerInpu
 	MoveAction = NewObject<UInputAction>(this);
 
 	MoveAction->ValueType = EInputActionValueType::Axis3D;
-	
+
 	UInputFunctionLibrary::BindInputAction(this, TEXT("HandleMovement"), ETriggerEvent::Triggered, PlayerMappingContext, MoveAction, EKeys::W,					false,	false,	EInputAxisSwizzle::YXZ);
 	UInputFunctionLibrary::BindInputAction(this, TEXT("HandleMovement"), ETriggerEvent::Triggered, PlayerMappingContext, MoveAction, EKeys::S,					true,	false,	EInputAxisSwizzle::YXZ);
 	UInputFunctionLibrary::BindInputAction(this, TEXT("HandleMovement"), ETriggerEvent::Triggered, PlayerMappingContext, MoveAction, EKeys::A,					true,	true,	EInputAxisSwizzle::YXZ);
@@ -40,7 +40,7 @@ void ASpectatorPlayerPawn::SetupPlayerInputComponent(UInputComponent* PlayerInpu
 	UInputFunctionLibrary::BindInputAction(this, TEXT("HandleMovement"), ETriggerEvent::Triggered, PlayerMappingContext, MoveAction, EKeys::MouseScrollUp,		false,	true,	EInputAxisSwizzle::ZYX);
 	UInputFunctionLibrary::BindInputAction(this, TEXT("HandleMovement"), ETriggerEvent::Triggered, PlayerMappingContext, MoveAction, EKeys::MouseScrollDown,	true,	true,	EInputAxisSwizzle::ZYX);
 
-	UInputFunctionLibrary::AddInputMapping(PlayerMappingContext, 0);
+	UInputFunctionLibrary::AddInputMapping(PlayerMappingContext);
 }
 
 void ASpectatorPlayerPawn::HandleMovement(const FInputActionValue& ActionValue)

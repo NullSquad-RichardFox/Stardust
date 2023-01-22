@@ -4,37 +4,36 @@
 
 #include "CoreMinimal.h"
 #include "Blueprint/UserWidget.h"
-#include "Stardust/CoreDataStructs.h"
-#include "BuildingListItem.generated.h"
+#include "BuildQueueListItem.generated.h"
 
 
-class UImage;
 class UTextBlock;
-class UButton;
+class UProgressBar;
 
 UCLASS()
-class STARDUST_API UBuildingListItem : public UUserWidget
+class STARDUST_API UBuildQueueListItem : public UUserWidget
 {
 	GENERATED_BODY()
-	
+
 protected:
 	UFUNCTION(BlueprintCallable)
 	void OnItemAddedHandle(UObject* Object);
 
 	virtual void NativeOnInitialized() override;
 
-private:	
-	UFUNCTION()
-	void OnClicked();
-
-protected:
 	UPROPERTY(EditAnywhere, Category = "Components", meta = (BindWidget))
-	UImage* Background;
+	UTextBlock* BuildingNameText;
 	UPROPERTY(EditAnywhere, Category = "Components", meta = (BindWidget))
-	UButton* HitBox;
+	UTextBlock* QueueIndexText;
+	UPROPERTY(EditAnywhere, Category = "Components", meta = (BindWidget))
+	UProgressBar* BuildProgress;
 
 private:
-	AActor* OwningActor;
-	int32 BuildSlotIndex;
-	EBuildingType BuildingType;
+	UFUNCTION()
+	void DayUpdate();
+
+	FText Name;
+	float Total;
+	const float* Progress = nullptr;
+	int32 QueueIndex;
 };

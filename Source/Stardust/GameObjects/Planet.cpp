@@ -7,6 +7,7 @@
 #include "Stardust/Player/PlayerCorporation.h"
 #include "Blueprint/WidgetBlueprintLibrary.h"
 #include "Stardust/UI/Planet/PlanetWidget.h"
+#include "Stardust/Libraries/ListDataLibrary.h"
 
 
 
@@ -62,20 +63,12 @@ void APlanet::OnClicked()
 	UWidgetBlueprintLibrary::GetAllWidgetsOfClass(GetWorld(), Widgets, UPlanetWidget::StaticClass(), false);
 
 	if (Widgets.IsValidIndex(0))
-	{
-		if (!Widgets[0]->IsInViewport())
-		{
-			UPlanetWidget* PlanetWidget = CreateWidget<UPlanetWidget>(GetWorld(), PlanetWidgetClass);
-			PlanetWidget->AddToViewport();
-			PlanetWidget->PreloadData(this);
-		}
-	}
-	else
-	{
-		UPlanetWidget* PlanetWidget = CreateWidget<UPlanetWidget>(GetWorld(), PlanetWidgetClass);
-		PlanetWidget->AddToViewport();
-		PlanetWidget->PreloadData(this);
-	}
+		if (Widgets[0]->IsInViewport()) return;
+
+	UPlanetWidget* NewPlanetWidget = CreateWidget<UPlanetWidget>(GetWorld(), PlanetWidgetClass);
+	NewPlanetWidget->AddToViewport();
+	NewPlanetWidget->PreloadData(this);
+	PlanetWidget = NewPlanetWidget;
 
 	UE_LOG(LogTemp, Warning, TEXT("[%s][%i]: OnClicked"), *GetName(), __LINE__);
 }
@@ -267,12 +260,21 @@ const UBuildRequest* APlanet::BuildBuilding(int32 BuildSlotIndex, EBuildingType 
 	if (!PlayerCorp->Purchase(Data->BuildCost)) return nullptr;
 
 
+
 	UBuildRequest* Request = NewObject<UBuildRequest>(this);
 	Request->BuildTime = Data->BuildTime;
 	Request->BuildSlotIndex = BuildSlotIndex;
 	Request->Status = EBuildingStatus::InQueue;
 
-	BuildQueue.Add(Request);
+	int32 Index = BuildQueue.Add(Request);
+
+	if (PlanetWidget)
+	{
+		UBuildQueueListData* Item = NewObject<UBuildQueueListData>(this);
+		Item->MakeBuildQueueData(FText::FromString("BBUilding"), &Request->BuildTime, Request->BuildTime, Index);
+
+		PlanetWidget->AddQueueItem(Item);
+	}
 
 	return Request;
 }
@@ -290,12 +292,21 @@ const UBuildRequest* APlanet::BuildDistrict(int32 BuildSlotIndex, EDistrictType 
 	if (!PlayerCorp->Purchase(Data->BuildCost)) return nullptr;
 
 
+
 	UBuildRequest* Request = NewObject<UBuildRequest>(this);
 	Request->BuildTime = Data->BuildTime;
 	Request->BuildSlotIndex = BuildSlotIndex;
 	Request->Status = EBuildingStatus::InQueue;
 
-	BuildQueue.Add(Request);
+	int32 Index = BuildQueue.Add(Request);
+
+	if (PlanetWidget)
+	{
+		UBuildQueueListData* Item = NewObject<UBuildQueueListData>(this);
+		Item->MakeBuildQueueData(FText::FromString("BDistrict"), &BuildQueue[Index]->BuildTime, BuildQueue[Index]->BuildTime, Index);
+
+		PlanetWidget->AddQueueItem(Item);
+	}
 
 	return Request;
 }
@@ -313,19 +324,36 @@ const UBuildRequest* APlanet::UpgradeDistrict(int32 BuildSlotIndex)
 	if (!PlayerCorp->Purchase(Data->BuildCost)) return nullptr;
 
 
+
 	UBuildRequest* Request = NewObject<UBuildRequest>(this);
 	Request->BuildTime = Data->BuildTime;
 	Request->BuildSlotIndex = BuildSlotIndex;
 	Request->Status = EBuildingStatus::InQueue;
 
-	BuildQueue.Add(Request);
+	int32 Index = BuildQueue.Add(Request);
+	
+	if (PlanetWidget)
+	{
+		UBuildQueueListData* Item = NewObject<UBuildQueueListData>(this);
+		Item->MakeBuildQueueData(FText::FromString("UDistrict"), &Request->BuildTime, Request->BuildTime, Index);
+
+		PlanetWidget->AddQueueItem(Item);
+	}
 
 	return Request;
 }
 
+void APlanet::DowngradeDistrict(int32 BuildSlotIndex)
+{
+	if (!PlanetCorporation) return;
+	if (!BuildSlots.IsValidIndex(BuildSlotIndex)) return;
+
+	BuildSlots[BuildSlotIndex].District.DowngradeDistrict();
+}
+
 void APlanet::HandleBuilding()
 {
-	int32 BuildStackCount = (MaxBuildStackCount < BuildQueue.Num()) ? MaxBuildStackCount : BuildQueue.Num();
+	int32 BuildStackCount = FMath::Min(MaxBuildStackCount, BuildQueue.Num());
 	for (int32 i = 0; i < BuildStackCount; i++)
 	{
 		UBuildRequest* const Request = BuildQueue[i];
@@ -337,13 +365,11 @@ void APlanet::HandleBuilding()
 		if (Request->Type.IsType<EDistrictType>())
 		{
 			EDistrictType Type = Request->Type.Get<EDistrictType>();
-
 			BuildSlots[Request->BuildSlotIndex].District.UpgradeDistrict(Type);
 		}
 		else
 		{
 			EBuildingType Type = Request->Type.Get<EBuildingType>();
-
 			BuildSlots[Request->BuildSlotIndex].District.AddBuilding(Type);
 		}
 
@@ -425,13 +451,9 @@ void APlanet::OccupyJobs()
 
 void APlanet::UpdateWidgets(int32 BuildSlotIndex)
 {
-	TArray<UUserWidget*> Widgets;
-	UWidgetBlueprintLibrary::GetAllWidgetsOfClass(GetWorld(), Widgets, UPlanetWidget::StaticClass(), false);
+	if (!PlanetWidget) return;
 
-	if (!Widgets.Num()) return;
-
-	if (UPlanetWidget* PlanetWidget = Cast<UPlanetWidget>(Widgets[0]))
-		PlanetWidget->BuildingUpdate(BuildSlotIndex);
+	PlanetWidget->BuildingUpdate(BuildSlotIndex);
 }
 
 
