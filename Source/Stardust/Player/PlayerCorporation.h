@@ -15,6 +15,7 @@ class STARDUST_API APlayerCorporation : public AActor
 	
 public:
 	bool Purchase(float Cost);
+	void Refund(float Cost);
 	void AddPlanet(APlanet* Planet);
 
 private:

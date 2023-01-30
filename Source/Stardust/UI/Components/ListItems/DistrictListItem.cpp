@@ -56,9 +56,10 @@ void UDistrictListItem::ItemClickedHandle()
 	if (APlanet* OwningPlanet = Cast<APlanet>(OwningActor))
 	{
 		OwningPlanet->BuildDistrict(BuildSlotIndex, DistrictType);
+
 		if (UDistrictMenu* DistrictMenu = Cast<UDistrictMenu>(GetOuter()->GetOuter()))
 		{
-			DistrictMenu->SetCanBuildDistricts(false);
+			DistrictMenu->SetCanBuildDistricts(false, BuildSlotIndex);
 		}
 	}
 }

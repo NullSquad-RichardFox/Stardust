@@ -26,13 +26,14 @@ class STARDUST_API UBuildRequest : public UObject
 
 public:
 	UBuildRequest()
-		: BuildSlotIndex(-1), BuildTime(-1), Status(), Type() {}
+		: BuildSlotIndex(-1), BuildTime(-1), BuildCost(-1), Status(), Type() {}
 
-	UBuildRequest(int32 BuildSlotIndex, float BuildTime, EBuildingStatus Status, TVariant<EBuildingType, EDistrictType> Type)
-		: BuildSlotIndex(BuildSlotIndex), BuildTime(BuildTime), Status(Status), Type(Type) {}
+	UBuildRequest(int32 BuildSlotIndex, float BuildTime, float BuildCost, EBuildingStatus Status, TVariant<EBuildingType, EDistrictType> Type)
+		: BuildSlotIndex(BuildSlotIndex), BuildTime(BuildTime), BuildCost(BuildCost), Status(Status), Type(Type) {}
 
 	int32 BuildSlotIndex;
 	float BuildTime;
+	float BuildCost;
 	EBuildingStatus Status;
 	TVariant<EBuildingType, EDistrictType> Type;
 };
@@ -48,7 +49,9 @@ public:
 	const UBuildRequest* BuildBuilding(int32 BuildSlotIndex, EBuildingType BuildingType);
 	const UBuildRequest* BuildDistrict(int32 BuildSlotIndex, EDistrictType DistrictType);
 	const UBuildRequest* UpgradeDistrict(int32 BuildSlotIndex);
-	void DowngradeDistrict(int32 BuildSlotIndex);
+	int32 DowngradeDistrict(int32 BuildSlotIndex);
+	void CancelBuildingProcess(int32 RequestIndex);
+
 	void ColonizePlanet(APlayerCorporation* Corporation);
 
 	const FBuildSlot& GetBuildSlot(int32 Index);

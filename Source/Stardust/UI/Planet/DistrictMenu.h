@@ -28,8 +28,8 @@ public:
 
 	void BuildingSlotClicked(int32 BuildingSlotIndex);
 
-	void SetCanBuildBuildings(bool bCanBuild);
-	void SetCanBuildDistricts(bool bCanBuild);
+	void SetCanBuildDistricts(bool bCanBuild, int32 DistrictIndex);
+	void SetCanBuildBuildings(bool bCanBuild, int32 DistrictIndex);
 
 protected:
 	UFUNCTION(BlueprintImplementableEvent)
@@ -112,6 +112,8 @@ private:
 	AActor* OwningActor;
 	int32 CurrentBuildSlotIndex;
 
-	bool bCanBuildBuildings;
-	int32 ListBuildingShownIndex;
+	int32 LastBuildingIndexShown;
+
+	TArray<int32> LockedDistrictIndexes;
+	TArray<int32> LockedBuildingIndexes;
 };

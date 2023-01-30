@@ -62,8 +62,7 @@ void UDistrictMenu::PreloadData(AActor* ParentActor)
 
 	OwningActor = ParentActor;
 	CurrentBuildSlotIndex = -1;
-	ListBuildingShownIndex = -1;
-	bCanBuildBuildings = true;
+	LastBuildingIndexShown = -1;
 }
 
 void UDistrictMenu::BuildingUpdate(int32 BuildSlotIndex)
@@ -82,6 +81,7 @@ void UDistrictMenu::BuildingUpdate(int32 BuildSlotIndex)
 	PopulateJobList(District);
 
 	SetDistrictName(District);
+	SetCanBuildDistricts(true, BuildSlotIndex);
 
 	RemoveBuildingSlots();
 	GenerateBuildingSlots(District);
@@ -96,7 +96,7 @@ bool UDistrictMenu::Reload(int32 BuildSlotIndex)
 	if (!OwningPlanet) return false;
 
 
-
+	//Close widget
 	if (BuildSlotIndex == CurrentBuildSlotIndex)
 	{
 		CurrentBuildSlotIndex = -1;
@@ -175,7 +175,14 @@ void UDistrictMenu::DowngradeDistrict()
 {
 	if (APlanet* OwningPlanet = Cast<APlanet>(OwningActor))
 	{
-		OwningPlanet->DowngradeDistrict(CurrentBuildSlotIndex);
+		int32 NewTier = OwningPlanet->DowngradeDistrict(CurrentBuildSlotIndex);
+		if (NewTier == 0)
+		{
+			SetCanBuildDistricts(true, CurrentBuildSlotIndex);
+			PopulateDistrictList();
+			DisplayDistrictList();
+			DisplayDistrictListBlueprint();
+		}
 	}
 }
 
@@ -189,31 +196,45 @@ void UDistrictMenu::CloseWidget()
 
 
 
-void UDistrictMenu::SetCanBuildDistricts(bool bCanBuild)
+void UDistrictMenu::SetCanBuildDistricts(bool bCanBuild, int32 DistrictIndex)
 {
-	DistrictList->SetIsEnabled(bCanBuild);
+	if (bCanBuild && LockedDistrictIndexes.Contains(DistrictIndex))
+	{
+		LockedDistrictIndexes.Remove(DistrictIndex);
 
-	if (!bCanBuild)
-	{
-		AlreadyBuildingIcon->SetVisibility(ESlateVisibility::Visible);
-		AlreadyBuildingBackgroundEffect->SetVisibility(ESlateVisibility::Visible);
-	}
-	else
-	{
-		AlreadyBuildingIcon->SetVisibility(ESlateVisibility::Collapsed);
 		AlreadyBuildingBackgroundEffect->SetVisibility(ESlateVisibility::Collapsed);
+		AlreadyBuildingIcon->SetVisibility(ESlateVisibility::Collapsed);
+	}
+	else if (!bCanBuild && !LockedDistrictIndexes.Contains(DistrictIndex))
+	{
+		LockedDistrictIndexes.Add(DistrictIndex);
+
+		AlreadyBuildingBackgroundEffect->SetVisibility(ESlateVisibility::Visible);
+		AlreadyBuildingIcon->SetVisibility(ESlateVisibility::Visible);
 	}
 }
 
-void UDistrictMenu::SetCanBuildBuildings(bool bCanBuild)
+void UDistrictMenu::SetCanBuildBuildings(bool bCanBuild, int32 DistrictIndex)
 {
-	bCanBuildBuildings = bCanBuild;
-	BuildingList->SetIsEnabled(bCanBuild);
+	if (bCanBuild && LockedBuildingIndexes.Contains(DistrictIndex))
+	{
+		LockedBuildingIndexes.Remove(DistrictIndex);
+
+		AlreadyBuildingBackgroundEffect->SetVisibility(ESlateVisibility::Collapsed);
+		AlreadyBuildingIcon->SetVisibility(ESlateVisibility::Collapsed);
+	}
+	else if (!bCanBuild && !LockedBuildingIndexes.Contains(DistrictIndex))
+	{
+		LockedBuildingIndexes.Add(DistrictIndex);
+
+		AlreadyBuildingBackgroundEffect->SetVisibility(ESlateVisibility::Visible);
+		AlreadyBuildingIcon->SetVisibility(ESlateVisibility::Visible);
+	}
 }
 
 void UDistrictMenu::BuildingSlotClicked(int32 BuildingSlotIndex)
 {
-	if (BuildingList->GetVisibility() == ESlateVisibility::Collapsed || ListBuildingShownIndex != BuildingSlotIndex)
+	if (BuildingList->GetVisibility() == ESlateVisibility::Collapsed || LastBuildingIndexShown != BuildingSlotIndex)
 	{
 		PopulateBuildingList();
 		DisplayBuildingList();
@@ -221,7 +242,7 @@ void UDistrictMenu::BuildingSlotClicked(int32 BuildingSlotIndex)
 	}
 	else
 	{
-		ListBuildingShownIndex = -1;
+		LastBuildingIndexShown = -1;
 
 		DisplayNormal();
 		DisplayNormalBlueprint();
@@ -245,8 +266,16 @@ void UDistrictMenu::BindInput()
 
 void UDistrictMenu::DisplayDistrictList()
 {
-	AlreadyBuildingIcon->SetVisibility(ESlateVisibility::Collapsed);
-	AlreadyBuildingBackgroundEffect->SetVisibility(ESlateVisibility::Collapsed);
+	if (LockedDistrictIndexes.Contains(CurrentBuildSlotIndex))
+	{
+		AlreadyBuildingIcon->SetVisibility(ESlateVisibility::Visible);
+		AlreadyBuildingBackgroundEffect->SetVisibility(ESlateVisibility::Visible);
+	}
+	else
+	{
+		AlreadyBuildingIcon->SetVisibility(ESlateVisibility::Collapsed);
+		AlreadyBuildingBackgroundEffect->SetVisibility(ESlateVisibility::Collapsed);
+	}
 	FeatureInfoText->SetVisibility(ESlateVisibility::Collapsed);
 
 	UpgradeHitBox->SetVisibility(ESlateVisibility::Collapsed);
@@ -260,8 +289,16 @@ void UDistrictMenu::DisplayDistrictList()
 }
 void UDistrictMenu::DisplayBuildingList()
 {
-	AlreadyBuildingIcon->SetVisibility(ESlateVisibility::Collapsed);
-	AlreadyBuildingBackgroundEffect->SetVisibility(ESlateVisibility::Collapsed);
+	if (LockedBuildingIndexes.Contains(CurrentBuildSlotIndex))
+	{
+		AlreadyBuildingIcon->SetVisibility(ESlateVisibility::Visible);
+		AlreadyBuildingBackgroundEffect->SetVisibility(ESlateVisibility::Visible);
+	}
+	else
+	{
+		AlreadyBuildingIcon->SetVisibility(ESlateVisibility::Collapsed);
+		AlreadyBuildingBackgroundEffect->SetVisibility(ESlateVisibility::Collapsed);
+	}
 	FeatureInfoText->SetVisibility(ESlateVisibility::Collapsed);
 
 	JobList->SetVisibility(ESlateVisibility::Collapsed);

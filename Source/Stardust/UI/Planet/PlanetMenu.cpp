@@ -7,6 +7,8 @@
 #include "Stardust/GameObjects/Planet.h"
 #include "Stardust/CoreDataStructs.h"
 #include "Stardust/Libraries/ListDataLibrary.h"
+#include "Stardust/UI/Components/ListItems/BuildQueueListItem.h"
+#include "Components/Button.h"
 
 
 
@@ -15,7 +17,15 @@ void UPlanetMenu::NativeOnInitialized()
 	if (AGameFramework* GameMode = Cast<AGameFramework>(GetWorld()->GetAuthGameMode()))
 	{
 		GameMode->MonthUpdateEvent.AddDynamic(this, &UPlanetMenu::MonthlyUpdate);
+		AddTradeRouteButton->OnClicked.AddDynamic(this, &UPlanetMenu::AddTradeRoute);
 	}
+}
+
+void UPlanetMenu::AddTradeRoute()
+{
+	//casts aplanet 
+	//adds trade route 
+	//updates list
 }
 
 void UPlanetMenu::MonthlyUpdate()
@@ -58,4 +68,24 @@ void UPlanetMenu::RemoveQueueItem()
 	if (!Item) return;
 
 	BuildQueueList->RemoveItem(Item);
+
+	for (UObject* ListItem : BuildQueueList->GetListItems())
+	{
+		UBuildQueueListItem* Widget = BuildQueueList->GetEntryWidgetFromItem<UBuildQueueListItem>(ListItem);
+		Widget->SetQueueIndex(BuildQueueList->GetIndexForItem(ListItem));
+	}
+}
+
+void UPlanetMenu::RemoveQueueItem(int32 Index)
+{
+	UObject* Item = BuildQueueList->GetItemAt(Index);
+	if (!Item) return;
+
+	BuildQueueList->RemoveItem(Item);
+
+	for (UObject* ListItem : BuildQueueList->GetListItems())
+	{
+		UBuildQueueListItem* Widget = BuildQueueList->GetEntryWidgetFromItem<UBuildQueueListItem>(ListItem);
+		Widget->SetQueueIndex(BuildQueueList->GetIndexForItem(ListItem));
+	}
 }

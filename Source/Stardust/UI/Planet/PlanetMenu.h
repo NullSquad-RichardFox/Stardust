@@ -8,6 +8,7 @@
 
 
 class UListView;
+class UButton;
 
 UCLASS()
 class STARDUST_API UPlanetMenu : public UUserWidget
@@ -19,6 +20,7 @@ public:
 
 	void AddQueueItem(UObject* Item);
 	void RemoveQueueItem();
+	void RemoveQueueItem(int32 Index);
 
 protected:
 	UFUNCTION()
@@ -32,7 +34,12 @@ protected:
 	UListView* TradeRouteList;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Components", meta = (BindWidget))
 	UListView* BuildQueueList;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Components", meta = (BindWidget))
+	UButton* AddTradeRouteButton;
 
 private:
+	UFUNCTION()
+	void AddTradeRoute();
+
 	AActor* OwningActor;
 };

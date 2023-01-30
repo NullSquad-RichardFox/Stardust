@@ -15,6 +15,32 @@ AGameActor::AGameActor()
 	RootComponent = ActorMeshComponent;
 }
 
+bool AGameActor::IsConnectedTo(AGameActor* OtherActor, int32& OutConnectionIndex)
+{
+	AGameFramework* GameMode = Cast<AGameFramework>(GetWorld()->GetAuthGameMode());
+	if (!GameMode)
+		return false;
+
+	for (const TObjectPtr<AConnection>& Connection : OtherActor->Connections)
+	{
+		int32 Index;
+		if (!Connections.Find(Connection, Index)) continue;
+
+		if (GameMode->FindActorConnection(Connections[Index], OutConnectionIndex))
+		{
+			return true;
+		}
+	}
+
+	OutConnectionIndex = -1;
+	return false;
+}
+
+void AGameActor::SetFindRouteActive(bool Value)
+{
+	bFindRouteActive = Value;
+}
+
 void AGameActor::BeginPlay()
 {
 	Super::BeginPlay();
@@ -56,6 +82,16 @@ void AGameActor::OnLeftMouseClick()
 		OnClicked();
 }
 
-void AGameActor::OnClicked() {}
+void AGameActor::OnClicked() 
+{
+	if (bFindRouteActive)
+	{
+		if (AGameFramework* GameMode = Cast<AGameFramework>(GetWorld()->GetAuthGameMode()))
+		{
+			GameMode->GetPathfinder().ActorClicked(this);
+		}
+	}
+}
+
 void AGameActor::OnDayUpdate() {}
 void AGameActor::OnMonthUpdate() {}

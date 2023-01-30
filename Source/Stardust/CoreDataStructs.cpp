@@ -295,6 +295,16 @@ const TMap<EJobType, int32>& FDistrict::GetOccupiedJobs() const
 	return OccupiedJobs;
 }
 
+bool FDistrict::IsValidBuildingIndex(int32 Index) const
+{
+	return Buildings.IsValidIndex(Index);
+}
+
+int32 FDistrict::GetBuildingCount() const
+{
+	return Buildings.Num();
+}
+
 void FDistrict::UpgradeDistrict(EDistrictType Type)
 {
 	DistrictTier++;
@@ -320,9 +330,9 @@ void FDistrict::UpgradeDistrict(EDistrictType Type)
 	}
 }
 
-void FDistrict::DowngradeDistrict()
+int32 FDistrict::DowngradeDistrict()
 {
-	if (DistrictTier == 0) return;
+	if (DistrictTier == 0) return 0;
 
 	if (const FDistrictData* DistrictData = UStructDataLibrary::GetData(DistrictType, DistrictTier))
 	{
@@ -344,6 +354,7 @@ void FDistrict::DowngradeDistrict()
 	}
 
 	DistrictTier--;
+	return DistrictTier;
 }
 
 TOptional<EJobType> FDistrict::GetFreeJob() const

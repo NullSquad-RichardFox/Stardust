@@ -19,6 +19,9 @@ class STARDUST_API AGameActor : public AActor
 public:
 	AGameActor();
 
+	bool IsConnectedTo(AGameActor* OtherActor, int32& OutConnectionIndex);
+	void SetFindRouteActive(bool Value);
+
 	UPROPERTY(VisibleAnywhere)
 	TArray<TObjectPtr<AConnection>> Connections;
 
@@ -51,4 +54,6 @@ private:
 	UInputAction* ClickAction;
 
 	bool bMouseOver;
+
+	bool bFindRouteActive;
 };

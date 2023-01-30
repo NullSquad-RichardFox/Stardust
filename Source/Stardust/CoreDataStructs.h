@@ -313,8 +313,11 @@ public:
 	const TMap<EJobType, int32>& GetJobs() const;
 	const TMap<EJobType, int32>& GetOccupiedJobs() const;
 
+	bool IsValidBuildingIndex(int32 Index) const;
+	int32 GetBuildingCount() const;
+
 	void UpgradeDistrict(EDistrictType Type);
-	void DowngradeDistrict();
+	int32 DowngradeDistrict();
 
 	static EJobType GetDistrictDefaultJob(EDistrictType Type);
 
@@ -368,9 +371,9 @@ struct FBuildSlot
 
 public:
 	UPROPERTY(VisibleAnywhere)
-		FDistrict District;
+	FDistrict District;
 	UPROPERTY(VisibleAnywhere)
-		TArray<EFeatureType> Features;
+	TArray<EFeatureType> Features;
 
 	FBuildSlot()
 		:District(FDistrict()),

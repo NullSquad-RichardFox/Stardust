@@ -4,6 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/GameModeBase.h"
+#include "Stardust/FindPath.h"
 #include "GameFramework.generated.h"
 
 
@@ -21,10 +22,49 @@ class STARDUST_API AGameFramework : public AGameModeBase
 	GENERATED_BODY()
 	
 public:
+	class UPathfinder
+	{
+	private:
+		typedef enum
+		{
+			FindingDestination,
+			AddingPathMidpoints
+		} InteractionType;
+
+	public:
+		UPathfinder()
+			:GameModePtr(nullptr) {}
+
+		UPathfinder(AGameFramework* GameModePtr)
+			:GameModePtr(GameModePtr) {}
+
+		void ActorClicked(AGameActor* Actor);
+		void SetStartingActor(AGameActor* Actor);
+
+		void ToggleActorClickeEvent(bool Toggle);
+
+		void CreateRoute();
+
+	private:
+		TArray<AGameActor*> Nodes;
+		AGameFramework* GameModePtr;
+		FFindPath PathfinderEngine;
+		InteractionType InteractionStatus;
+	};
+
+public:
 	AGameFramework();
 
 	bool FindGameActor(AGameActor* Item, int32& Index);
+	bool FindActorConnection(AConnection* Connection, int32& Index);
+	bool IsValidGameActorIndex(int32 Index);
 
+	AGameActor* GetGameActorRef(int32 Index);
+	int32 GetGameActorNum();
+
+	AConnection* GetActorConnectionRef(int32 Index);
+
+	UPathfinder& GetPathfinder();
 
 	UFUNCTION(BlueprintCallable)
 	FString GetDisplayTimeString();
@@ -59,6 +99,9 @@ public:
 private:
 	TArray<AGameActor*> GameActors;
 	TArray<AConnection*> GameActorConnections;
+
+	AGameActor* TradeRouteStartActor;
+	UPathfinder Pathfinder;
 
 	TSubclassOf<APlanet> PlanetClass;
 	TSubclassOf<AConnection> ConnectionClass;

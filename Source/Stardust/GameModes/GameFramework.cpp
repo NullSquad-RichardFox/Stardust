@@ -9,6 +9,7 @@
 #include "Stardust/GameObjects/Connection.h"
 #include "Stardust/GameObjects/Planet.h"
 #include "Blueprint/UserWidget.h"
+#include "Stardust/FindPath.h"
 
 
 
@@ -37,7 +38,9 @@ void AGameFramework::BeginPlay()
 		CreateWidget(GetWorld(), MainUIClass)->AddToViewport(999);
 
 	GenerateMap(10);
+
 	GetWorld()->SpawnActor<APlayerCorporation>();
+	Pathfinder = UPathfinder(this);
 }
 
 void AGameFramework::DayUpdate()
@@ -195,6 +198,36 @@ bool AGameFramework::FindGameActor(AGameActor* Item, int32& Index)
 	return GameActors.Find(Item, Index);
 }
 
+bool AGameFramework::FindActorConnection(AConnection* Connection, int32& Index)
+{
+	return GameActorConnections.Find(Connection, Index);
+}
+
+bool AGameFramework::IsValidGameActorIndex(int32 Index)
+{
+	return GameActors.IsValidIndex(Index);
+}
+
+AGameActor* AGameFramework::GetGameActorRef(int32 Index)
+{
+	return GameActors[Index];
+}
+
+int32 AGameFramework::GetGameActorNum()
+{
+	return GameActors.Num();
+}
+
+AConnection* AGameFramework::GetActorConnectionRef(int32 Index)
+{
+	return GameActorConnections[Index];
+}
+
+AGameFramework::UPathfinder& AGameFramework::GetPathfinder()
+{
+	return Pathfinder;
+}
+
 FString AGameFramework::GetDisplayTimeString()
 {
 	return FString::FromInt(GameplayTime.X) + ". " + FString::FromInt(GameplayTime.Y) + ". " + FString::FromInt(GameplayTime.Z);
@@ -203,4 +236,69 @@ FString AGameFramework::GetDisplayTimeString()
 void AGameFramework::SetTimeSpeedModifier(float Value)
 {
 	TimeSpeedMultiplier = FMath::Clamp(Value, 0, 100.f);
+}
+
+
+
+void AGameFramework::UPathfinder::ActorClicked(AGameActor* Actor)
+{
+	switch (InteractionStatus)
+	{
+	case FindingDestination:
+		Nodes.Add(Actor);
+		CreateRoute();
+		InteractionStatus = AddingPathMidpoints;
+		break;
+
+	case AddingPathMidpoints:
+		int32 Index;
+		if (!Nodes.Find(Actor, Index))
+		{
+			Nodes.EmplaceAt(Nodes.Num() - 1, Actor);
+			CreateRoute();
+		}
+		else if (Index != 0)
+		{
+			Nodes.Remove(Actor);
+
+			if (Nodes.Num() == 1)
+			{
+				InteractionStatus = FindingDestination;
+			}
+			else
+			{
+				CreateRoute();
+			}
+		}
+		break;
+	}
+}
+
+void AGameFramework::UPathfinder::SetStartingActor(AGameActor* Actor)
+{
+	if (!GameModePtr) return;
+
+	Nodes.Empty();
+	Nodes.Add(Actor);
+
+	ToggleActorClickeEvent(true);
+
+	PathfinderEngine.SetGameModePtr(GameModePtr);
+	InteractionStatus = FindingDestination;
+}
+
+void AGameFramework::UPathfinder::ToggleActorClickeEvent(bool Toggle)
+{
+	if (!GameModePtr) return;
+
+	for (int32 i = 0; i < GameModePtr->GetGameActorNum(); i++)
+	{
+		GameModePtr->GetGameActorRef(i)->SetFindRouteActive(Toggle);
+	}
+}
+
+void AGameFramework::UPathfinder::CreateRoute()
+{
+	PathfinderEngine.SetNodes(Nodes);
+	PathfinderEngine.FindPath();
 }

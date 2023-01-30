@@ -164,8 +164,6 @@ void UPlanetWidget::BuildingUpdate(int32 BuildSlotIndex)
 	EnergyBar->SetCount(OwningPlanet->EnergyFinal);
 
 	DistrictMenu->BuildingUpdate(BuildSlotIndex);
-	DistrictMenu->SetCanBuildBuildings(true);
-	DistrictMenu->SetCanBuildDistricts(true);
 
 	PlanetMenu->RemoveQueueItem();
 }

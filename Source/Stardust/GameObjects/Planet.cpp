@@ -263,6 +263,7 @@ const UBuildRequest* APlanet::BuildBuilding(int32 BuildSlotIndex, EBuildingType 
 
 	UBuildRequest* Request = NewObject<UBuildRequest>(this);
 	Request->BuildTime = Data->BuildTime;
+	Request->BuildCost = Data->BuildCost;
 	Request->BuildSlotIndex = BuildSlotIndex;
 	Request->Status = EBuildingStatus::InQueue;
 
@@ -271,7 +272,7 @@ const UBuildRequest* APlanet::BuildBuilding(int32 BuildSlotIndex, EBuildingType 
 	if (PlanetWidget)
 	{
 		UBuildQueueListData* Item = NewObject<UBuildQueueListData>(this);
-		Item->MakeBuildQueueData(FText::FromString("BBUilding"), &Request->BuildTime, Request->BuildTime, Index);
+		Item->MakeBuildQueueData(FText::FromString("BBUilding"), &Request->BuildTime, Request->BuildTime, Index, this);
 
 		PlanetWidget->AddQueueItem(Item);
 	}
@@ -295,6 +296,7 @@ const UBuildRequest* APlanet::BuildDistrict(int32 BuildSlotIndex, EDistrictType 
 
 	UBuildRequest* Request = NewObject<UBuildRequest>(this);
 	Request->BuildTime = Data->BuildTime;
+	Request->BuildCost = Data->BuildCost;
 	Request->BuildSlotIndex = BuildSlotIndex;
 	Request->Status = EBuildingStatus::InQueue;
 
@@ -303,7 +305,7 @@ const UBuildRequest* APlanet::BuildDistrict(int32 BuildSlotIndex, EDistrictType 
 	if (PlanetWidget)
 	{
 		UBuildQueueListData* Item = NewObject<UBuildQueueListData>(this);
-		Item->MakeBuildQueueData(FText::FromString("BDistrict"), &BuildQueue[Index]->BuildTime, BuildQueue[Index]->BuildTime, Index);
+		Item->MakeBuildQueueData(FText::FromString("BDistrict"), &BuildQueue[Index]->BuildTime, BuildQueue[Index]->BuildTime, Index, this);
 
 		PlanetWidget->AddQueueItem(Item);
 	}
@@ -326,6 +328,7 @@ const UBuildRequest* APlanet::UpgradeDistrict(int32 BuildSlotIndex)
 
 
 	UBuildRequest* Request = NewObject<UBuildRequest>(this);
+	Request->BuildCost = Data->BuildCost;
 	Request->BuildTime = Data->BuildTime;
 	Request->BuildSlotIndex = BuildSlotIndex;
 	Request->Status = EBuildingStatus::InQueue;
@@ -335,7 +338,7 @@ const UBuildRequest* APlanet::UpgradeDistrict(int32 BuildSlotIndex)
 	if (PlanetWidget)
 	{
 		UBuildQueueListData* Item = NewObject<UBuildQueueListData>(this);
-		Item->MakeBuildQueueData(FText::FromString("UDistrict"), &Request->BuildTime, Request->BuildTime, Index);
+		Item->MakeBuildQueueData(FText::FromString("UDistrict"), &Request->BuildTime, Request->BuildTime, Index, this);
 
 		PlanetWidget->AddQueueItem(Item);
 	}
@@ -343,12 +346,22 @@ const UBuildRequest* APlanet::UpgradeDistrict(int32 BuildSlotIndex)
 	return Request;
 }
 
-void APlanet::DowngradeDistrict(int32 BuildSlotIndex)
+int32 APlanet::DowngradeDistrict(int32 BuildSlotIndex)
 {
-	if (!PlanetCorporation) return;
-	if (!BuildSlots.IsValidIndex(BuildSlotIndex)) return;
+	if (!PlanetCorporation) return -1;
+	if (!BuildSlots.IsValidIndex(BuildSlotIndex)) return -1;
 
-	BuildSlots[BuildSlotIndex].District.DowngradeDistrict();
+	return BuildSlots[BuildSlotIndex].District.DowngradeDistrict();
+}
+
+void APlanet::CancelBuildingProcess(int32 RequestIndex)
+{
+	if (!BuildQueue.IsValidIndex(RequestIndex)) return;
+	if (!PlanetCorporation) return;
+
+
+	PlanetCorporation.GetValue()->Refund(BuildQueue[RequestIndex]->BuildCost);
+	BuildQueue.RemoveAt(RequestIndex, 1, true);
 }
 
 void APlanet::HandleBuilding()

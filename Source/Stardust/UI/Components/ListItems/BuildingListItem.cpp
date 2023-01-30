@@ -25,7 +25,12 @@ void UBuildingListItem::OnClicked()
 
 		if (UDistrictMenu* DistrictMenu = Cast<UDistrictMenu>(GetOuter()->GetOuter()))
 		{
-			DistrictMenu->SetCanBuildBuildings(false);
+			const FDistrict& District = OwningPlanet->GetBuildSlot(BuildSlotIndex).District;
+
+			if (District.GetBuildingCount() == District.BuildSlots)
+			{
+				DistrictMenu->SetCanBuildBuildings(false, BuildSlotIndex);
+			}
 		}
 	}
 }

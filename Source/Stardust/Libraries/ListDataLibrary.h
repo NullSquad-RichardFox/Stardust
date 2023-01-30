@@ -179,25 +179,28 @@ class STARDUST_API UBuildQueueListData : public UObject
 	GENERATED_BODY()
 
 public:
-	void MakeBuildQueueData(FText BuildingName, const float* BuildTime, float TotalBuildTime, int32 QueueIndex)
+	void MakeBuildQueueData(FText BuildingName, const float* BuildTime, float TotalBuildTime, int32 QueueIndex, AActor* OwningActor)
 	{
 		InBuildingName = BuildingName;
 		InBuildTime = BuildTime;
 		InTotalBuildTime = TotalBuildTime;
 		InQueueIndex = QueueIndex;
+		InOwningActor = OwningActor;
 	}
 
-	void GetBuildQueueData(FText& BuildingName, const float*& BuildTime, float& TotalBuildTime, int32& QueueIndex)
+	void GetBuildQueueData(FText& BuildingName, const float*& BuildTime, float& TotalBuildTime, int32& QueueIndex, AActor*& OwningActor)
 	{
 		BuildingName = InBuildingName;
 		BuildTime = InBuildTime;
 		TotalBuildTime = InTotalBuildTime;
 		QueueIndex = InQueueIndex;
+		OwningActor = InOwningActor;
 	}
 
 private:
-	int32 InQueueIndex;
 	FText InBuildingName;
-	const float* InBuildTime;
 	float InTotalBuildTime;
+	AActor* InOwningActor;
+	int32 InQueueIndex;
+	const float* InBuildTime;
 };
