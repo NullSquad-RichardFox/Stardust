@@ -53,6 +53,8 @@ public:
 	void CancelBuildingProcess(int32 RequestIndex);
 
 	void ColonizePlanet(APlayerCorporation* Corporation);
+	void TradeRouteSent(const FTradeRoute& TradeRoute);
+	void TradeRouteFinished(const FTradeRoute& TradeRoute);
 
 	const FBuildSlot& GetBuildSlot(int32 Index);
 	const TMap<EResourceType, float>& GetResourceStorage();
@@ -60,6 +62,7 @@ public:
 	const TMap<EResourceType, float>& GetResourceUpkeep();
 	TMap<EJobType, int32> GetJobs();
 	TMap<EJobType, int32> GetOccupiedJobs();
+	const TArray<FTradeRoute>& GetTradeRoutes();
 
 	bool IsValidBuildSlotIndex(int32 BuildSlotIndex);
 
@@ -138,6 +141,7 @@ private:
 	TArray<UBuildRequest*> BuildQueue;
 	TMap<EResourceType, float> UpkeepModifiers;
 	TMap<EResourceType, float> ProductionModifiers;
+	TArray<FTradeRoute> TradeRoutes;
 
 	float PartialPopulation;
 	float UnemployedPopulation;

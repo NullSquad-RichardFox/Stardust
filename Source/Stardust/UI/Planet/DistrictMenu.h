@@ -15,6 +15,7 @@ class UListView;
 class UBuildingSlotWidget;
 class UInputAction;
 class UInputMappingContext;
+class AGameActor;
 
 UCLASS()
 class STARDUST_API UDistrictMenu : public UUserWidget
@@ -22,7 +23,7 @@ class STARDUST_API UDistrictMenu : public UUserWidget
 	GENERATED_BODY()
 
 public:
-	void PreloadData(AActor* OwningActor);
+	void PreloadData(AGameActor* OwningActor);
 	bool Reload(int32 BuildSlotIndex);
 	void BuildingUpdate(int32 BuildSlotIndex);
 
@@ -109,7 +110,7 @@ private:
 	UPROPERTY(EditAnywhere, meta = (AllowPrivateAccess = true))
 	TSubclassOf<UBuildingSlotWidget> BuildingSlotWidgetClass;
 
-	AActor* OwningActor;
+	AGameActor* OwningActor;
 	int32 CurrentBuildSlotIndex;
 
 	int32 LastBuildingIndexShown;

@@ -243,6 +243,33 @@ void APlanet::ColonizePlanet(APlayerCorporation* Corporation)
 	}
 }
 
+void APlanet::TradeRouteSent(const FTradeRoute& TradeRoute)
+{
+	for (const auto& [Type, Amount] : TradeRoute.Resources)
+		ResourceStorage.FindOrAdd(Type) -= Amount;
+
+	TradeRoutes.Add(TradeRoute);
+
+	if (PlanetWidget)
+		PlanetWidget->TradeRouteUpdate();
+}
+
+void APlanet::TradeRouteFinished(const FTradeRoute& TradeRoute)
+{
+	TradeRoutes.Remove(TradeRoute);
+
+	if (UEnum* ResEnum = FindObject<UEnum>(ANY_PACKAGE, TEXT("EResourceType"), true))
+	{
+		for (const auto& [Type, Amount] : TradeRoute.Resources)
+		{
+			UE_LOG(LogTemp, Warning, TEXT("TR finished with type: %s and count: %f"), *ResEnum->GetNameStringByValue((int32)Type), Amount);
+		}
+	}
+
+	if (PlanetWidget)
+		PlanetWidget->TradeRouteUpdate();
+}
+
 
 
 
@@ -266,15 +293,20 @@ const UBuildRequest* APlanet::BuildBuilding(int32 BuildSlotIndex, EBuildingType 
 	Request->BuildCost = Data->BuildCost;
 	Request->BuildSlotIndex = BuildSlotIndex;
 	Request->Status = EBuildingStatus::InQueue;
+	Request->Type.Emplace<EBuildingType>(BuildingType);
 
 	int32 Index = BuildQueue.Add(Request);
 
 	if (PlanetWidget)
 	{
-		UBuildQueueListData* Item = NewObject<UBuildQueueListData>(this);
-		Item->MakeBuildQueueData(FText::FromString("BBUilding"), &Request->BuildTime, Request->BuildTime, Index, this);
+		if (UEnum* BuildingEnum = FindObject<UEnum>(ANY_PACKAGE, TEXT("EBuildingType"), true))
+		{
+			UBuildQueueListData* Item = NewObject<UBuildQueueListData>(this);
+			FString BuildQueueString = "Building " + BuildingEnum->GetDisplayNameTextByIndex((int32)BuildingType).ToString();
+			Item->MakeBuildQueueData(FText::FromString(BuildQueueString), &Request->BuildTime, Request->BuildTime, Index, this);
 
-		PlanetWidget->AddQueueItem(Item);
+			PlanetWidget->AddQueueItem(Item);
+		}
 	}
 
 	return Request;
@@ -299,15 +331,22 @@ const UBuildRequest* APlanet::BuildDistrict(int32 BuildSlotIndex, EDistrictType 
 	Request->BuildCost = Data->BuildCost;
 	Request->BuildSlotIndex = BuildSlotIndex;
 	Request->Status = EBuildingStatus::InQueue;
+	Request->Type.Emplace<EDistrictType>(DistrictType);
+
+	UE_LOG(LogTemp, Warning, TEXT("District type: %i"), (int32)DistrictType)
 
 	int32 Index = BuildQueue.Add(Request);
 
 	if (PlanetWidget)
 	{
-		UBuildQueueListData* Item = NewObject<UBuildQueueListData>(this);
-		Item->MakeBuildQueueData(FText::FromString("BDistrict"), &BuildQueue[Index]->BuildTime, BuildQueue[Index]->BuildTime, Index, this);
+		if (UEnum* DistrictEnum = FindObject<UEnum>(ANY_PACKAGE, TEXT("EDistrictType"), true))
+		{
+			UBuildQueueListData* Item = NewObject<UBuildQueueListData>(this);
+			FString BuildQueueString = "Building " + DistrictEnum->GetDisplayNameTextByIndex((int32)DistrictType).ToString();
+			Item->MakeBuildQueueData(FText::FromString(BuildQueueString), &BuildQueue[Index]->BuildTime, BuildQueue[Index]->BuildTime, Index, this);
 
-		PlanetWidget->AddQueueItem(Item);
+			PlanetWidget->AddQueueItem(Item);
+		}
 	}
 
 	return Request;
@@ -337,10 +376,14 @@ const UBuildRequest* APlanet::UpgradeDistrict(int32 BuildSlotIndex)
 	
 	if (PlanetWidget)
 	{
-		UBuildQueueListData* Item = NewObject<UBuildQueueListData>(this);
-		Item->MakeBuildQueueData(FText::FromString("UDistrict"), &Request->BuildTime, Request->BuildTime, Index, this);
+		if (UEnum* DistrictEnum = FindObject<UEnum>(ANY_PACKAGE, TEXT("EDistrictType"), true))
+		{
+			UBuildQueueListData* Item = NewObject<UBuildQueueListData>(this);
+			FString BuildQueueString = "Upgrading " + DistrictEnum->GetDisplayNameTextByIndex((int32)BuildSlots[BuildSlotIndex].District.DistrictType).ToString();
+			Item->MakeBuildQueueData(FText::FromString(BuildQueueString), &Request->BuildTime, Request->BuildTime, Index, this);
 
-		PlanetWidget->AddQueueItem(Item);
+			PlanetWidget->AddQueueItem(Item);
+		}
 	}
 
 	return Request;
@@ -378,6 +421,7 @@ void APlanet::HandleBuilding()
 		if (Request->Type.IsType<EDistrictType>())
 		{
 			EDistrictType Type = Request->Type.Get<EDistrictType>();
+			UE_LOG(LogTemp, Warning, TEXT("District type: %i"), (int32)Type)
 			BuildSlots[Request->BuildSlotIndex].District.UpgradeDistrict(Type);
 		}
 		else
@@ -517,4 +561,9 @@ TMap<EJobType, int32> APlanet::GetOccupiedJobs()
 			Jobs.FindOrAdd(DistrictJobs.Key) += DistrictJobs.Value;
 
 	return Jobs;
+}
+
+const TArray<FTradeRoute>& APlanet::GetTradeRoutes()
+{
+	return TradeRoutes;
 }

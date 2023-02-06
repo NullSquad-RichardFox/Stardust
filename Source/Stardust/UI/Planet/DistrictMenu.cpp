@@ -56,7 +56,7 @@ void UDistrictMenu::MonthlyUpdate()
 
 
 
-void UDistrictMenu::PreloadData(AActor* ParentActor)
+void UDistrictMenu::PreloadData(AGameActor* ParentActor)
 {
 	if (!ParentActor) return;
 

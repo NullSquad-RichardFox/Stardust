@@ -23,8 +23,13 @@ public:
 
 	AGameActor* GetOtherActor(AGameActor* Actor);
 
+	FORCEINLINE float GetDangerLevel() { return DangerLevel; }
+	FORCEINLINE float GetLength() { return Length; }
+
 	void SetActors(AGameActor* InStartActor, AGameActor* InEndActor);
+
 	void Select();
+	void Deselect();
 
 public:
 	FVector StartPoint, EndPoint;
@@ -39,6 +44,8 @@ protected:
 	class UStaticMeshComponent* Mesh;
 	UPROPERTY(EditAnywhere)
 	UMaterialInterface* SelectedMaterial;
+	UPROPERTY(EditAnywhere)
+	UMaterialInterface* NormalMaterial;
 
 private:
 	UPROPERTY(VisibleAnywhere, meta = (AllowPrivateAccess = true))

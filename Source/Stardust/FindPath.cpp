@@ -72,7 +72,19 @@ float FFindPath::FQuery::GetHeuristicCost(const FSearchNode& StartNode, const FS
 	{
 		if (GameMode->IsValidGameActorIndex(StartNode.NodeRef) && GameMode->IsValidGameActorIndex(EndNode.NodeRef))
 		{
-			return GameMode->GetGameActorRef(StartNode.NodeRef)->GetDistanceTo(GameMode->GetGameActorRef(EndNode.NodeRef));
+			AGameActor* StartActor = GameMode->GetGameActorRef(StartNode.NodeRef);
+			AGameActor* EndActor = GameMode->GetGameActorRef(EndNode.NodeRef);
+
+			int32 ConnectionIndex;
+			if (StartActor->IsConnectedTo(EndActor, ConnectionIndex))
+			{
+				AConnection* Connection = GameMode->GetActorConnectionRef(ConnectionIndex);
+
+				float Distance = Connection->GetLength();
+				float DangerLevel = Connection->GetDangerLevel();
+
+				return Distance + DangerLevel * DangerLevelWeight;
+			}
 		}
 	}
 
@@ -143,6 +155,8 @@ void FFindPath::SetNodes(const TArray<AGameActor*>& InNodes)
 
 EGraphAStarResult FFindPath::FindPath()
 {
+	FullPath.Empty();
+
 	FGraph Graph(GameModePtr);
 	FQuery Query(GameModePtr);
 
@@ -190,6 +204,8 @@ EGraphAStarResult FFindPath::FindPath()
 
 EGraphAStarResult FFindPath::FindPath(AGameActor* StartActor, AGameActor* EndActor)
 {
+	FullPath.Empty();
+
 	FGraph Graph(GameModePtr);
 	FQuery Query(GameModePtr);
 
@@ -250,4 +266,114 @@ void FFindPath::GetActorConnection(TArray<AConnection*>& OutConnections)
 			}
 		}
 	}
+}
+
+void FFindPath::GetPathIndexes(TArray<int32>& OutIndexes)
+{
+	OutIndexes = FullPath;
+}
+
+
+
+
+void UPathfinder::ActorClicked(AGameActor* Actor)
+{
+	switch (InteractionStatus)
+	{
+	case FindingDestination:
+		Nodes.Add(Actor);
+		CreateRoute();
+		InteractionStatus = AddingPathMidpoints;
+		break;
+
+	case AddingPathMidpoints:
+		int32 Index;
+		if (!Nodes.Find(Actor, Index))
+		{
+			Nodes.EmplaceAt(Nodes.Num() - 1, Actor);
+			CreateRoute();
+		}
+		else if (Index != 0)
+		{
+			Nodes.Remove(Actor);
+
+			if (Nodes.Num() == 1)
+			{
+				InteractionStatus = FindingDestination;
+				ResetConnectionSelection();
+				OnRouteUpdate.Broadcast(0.f, 0.f);
+			}
+			else
+			{
+				CreateRoute();
+			}
+		}
+		break;
+	}
+}
+
+void UPathfinder::SetStartingActor(AGameActor* Actor)
+{
+	if (!GameModePtr) return;
+
+	Nodes.Empty();
+	Nodes.Add(Actor);
+
+	ToggleActorClickeEvent(true);
+
+	PathfinderEngine.SetGameModePtr(GameModePtr);
+	InteractionStatus = FindingDestination;
+}
+
+void UPathfinder::CleanUp()
+{
+	ToggleActorClickeEvent(false);
+	ResetConnectionSelection();
+}
+
+void UPathfinder::GetRouteConnections(TArray<AConnection*>& Connections)
+{
+	PathfinderEngine.GetActorConnection(Connections);
+}
+
+void UPathfinder::GetRouteActors(TArray<AGameActor*>& Actors)
+{
+	PathfinderEngine.GetGameActors(Actors);
+}
+
+void UPathfinder::ToggleActorClickeEvent(bool Toggle)
+{
+	if (!GameModePtr) return;
+
+	for (int32 i = 0; i < GameModePtr->GetGameActorNum(); i++)
+	{
+		GameModePtr->GetGameActorRef(i)->SetFindRouteActive(Toggle);
+	}
+}
+
+void UPathfinder::CreateRoute()
+{
+	ResetConnectionSelection();
+
+	PathfinderEngine.SetNodes(Nodes);
+	PathfinderEngine.FindPath();
+
+	TArray<AConnection*> Connections;
+	float PathLength = 0.f;
+	PathfinderEngine.GetActorConnection(Connections);
+	for (AConnection* Connection : Connections)
+	{
+		Connection->Select();
+		PathLength += Connection->GetLength();
+	}
+
+	OnRouteUpdate.Broadcast(PathLength, 1.f);
+}
+
+void UPathfinder::ResetConnectionSelection()
+{
+	TArray<AConnection*> Connections;
+	PathfinderEngine.GetActorConnection(Connections);
+	for (AConnection* Connection : Connections)
+		Connection->Deselect();
 }

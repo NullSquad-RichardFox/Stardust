@@ -20,6 +20,7 @@ AConnection::AConnection()
 void AConnection::CalculateMeshSize(float Dist)
 {
 	float Spacing = 20.f;
+	Length = Dist;
 
 	SetActorScale3D(FVector(0.1 * Dist - 2 * Spacing, 15.f, 15.f));
 }
@@ -41,10 +42,17 @@ AGameActor* AConnection::GetOtherActor(AGameActor* Actor)
 
 void AConnection::Select()
 {
-	if (SelectedMaterial && Mesh)
+	if (SelectedMaterial)
 	{
-		UE_LOG(LogTemp, Warning, TEXT("Selected"))
 		Mesh->SetMaterial(1, SelectedMaterial);
+	}
+}
+
+void AConnection::Deselect()
+{
+	if (NormalMaterial)
+	{
+		Mesh->SetMaterial(1, NormalMaterial);
 	}
 }
 

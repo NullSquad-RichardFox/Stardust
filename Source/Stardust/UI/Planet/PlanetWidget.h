@@ -26,10 +26,14 @@ class STARDUST_API UPlanetWidget : public UUserWidget
 public:
 	// call right after AddToViewport
 	void PreloadData(APlanet* ParentPlanet);
+
 	void BuildingUpdate(int32 BuildSlotIndex);
+	void TradeRouteUpdate();
+	
 	void BuildSlotClicked(int32 BuildSlotIndex);
 
 	void AddQueueItem(UObject* Item);
+	void EnablePlayerMovement(bool Value);
 
 protected:
 	virtual void NativeOnInitialized() override;

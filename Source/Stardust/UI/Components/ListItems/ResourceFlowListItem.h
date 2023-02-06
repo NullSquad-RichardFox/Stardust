@@ -4,6 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "Blueprint/UserWidget.h"
+#include "Stardust/CoreDataStructs.h"
 #include "ResourceFlowListItem.generated.h"
 
 
@@ -14,6 +15,11 @@ UCLASS()
 class STARDUST_API UResourceFlowListItem : public UUserWidget
 {
 	GENERATED_BODY()
+
+public:
+	void SetIconToNone();
+	void SetText(FText Text);
+	void SetResourceType(EResourceType ResourceType);
 
 protected:
 	UFUNCTION(BlueprintCallable)

@@ -8,9 +8,17 @@
 #include "Stardust/CoreDataStructs.h"
 #include "Stardust/Libraries/ListDataLibrary.h"
 #include "Stardust/UI/Components/ListItems/BuildQueueListItem.h"
+#include "Stardust/UI/TradeRoutePicker.h"
+#include "Stardust/UI/Planet/PlanetWidget.h"
 #include "Components/Button.h"
 
 
+
+UPlanetMenu::UPlanetMenu(const FObjectInitializer& ObjectInitializer) :UUserWidget(ObjectInitializer)
+{
+	ConstructorHelpers::FClassFinder<UTradeRoutePicker> TradeRoutePickerClassObject(TEXT("WidgetBlueprint'/Game/Blueprints/UI/WBP_TradeRoutePicker.WBP_TradeRoutePicker_C'"));
+	TradeRoutePickerClass = TradeRoutePickerClassObject.Class;
+}
 
 void UPlanetMenu::NativeOnInitialized()
 {
@@ -23,23 +31,51 @@ void UPlanetMenu::NativeOnInitialized()
 
 void UPlanetMenu::AddTradeRoute()
 {
-	//casts aplanet 
-	//adds trade route 
-	//updates list
+	if (!TradeRoutePickerClass) return;
+
+	UTradeRoutePicker* TradeRouteUI = CreateWidget<UTradeRoutePicker>(GetWorld(), TradeRoutePickerClass);
+	TradeRouteUI->Load(OwningActor);
+	TradeRouteUI->AddToViewport();
+
+	if (UPlanetWidget* PlanetWidget = Cast<UPlanetWidget>(GetOuter()->GetOuter()))
+	{
+		PlanetWidget->SetVisibility(ESlateVisibility::Collapsed);
+		PlanetWidget->EnablePlayerMovement(true);
+	}
 }
 
 void UPlanetMenu::MonthlyUpdate()
 {
-	Preload(OwningActor);
+	UpdateResourceList();
 }
 
-void UPlanetMenu::Preload(AActor* ParentActor)
+void UPlanetMenu::Preload(AGameActor* ParentActor)
 {
 	if (!ParentActor) return;
-
-	APlanet* OwningPlanet = Cast<APlanet>(ParentActor);
 	OwningActor = ParentActor;
 
+	UpdateResourceList();
+	UpdateTradeRouteList();
+}
+
+void UPlanetMenu::UpdateTradeRouteList()
+{
+	APlanet* OwningPlanet = Cast<APlanet>(OwningActor);
+	if (!OwningPlanet) return;
+
+	TradeRouteList->ClearListItems();
+
+	for (const FTradeRoute& TradeRoute : OwningPlanet->GetTradeRoutes())
+	{
+		UTradeRouteListData* Item = NewObject<UTradeRouteListData>(this);
+		Item->MakeTradeRouteData(TradeRoute.Origin->GetName(), TradeRoute.Destination->GetName(), TradeRoute.DangerLevel, TradeRoute.Time, TradeRoute.FuelCosts, TradeRoute.Resources);
+		TradeRouteList->AddItem(Item);
+	}
+}
+
+void UPlanetMenu::UpdateResourceList()
+{
+	APlanet* OwningPlanet = Cast<APlanet>(OwningActor);
 	if (!OwningPlanet) return;
 
 	ResourceList->ClearListItems();
@@ -60,20 +96,6 @@ void UPlanetMenu::Preload(AActor* ParentActor)
 void UPlanetMenu::AddQueueItem(UObject* Item)
 {
 	BuildQueueList->AddItem(Item);
-}
-
-void UPlanetMenu::RemoveQueueItem()
-{
-	UObject* Item = BuildQueueList->GetItemAt(0);
-	if (!Item) return;
-
-	BuildQueueList->RemoveItem(Item);
-
-	for (UObject* ListItem : BuildQueueList->GetListItems())
-	{
-		UBuildQueueListItem* Widget = BuildQueueList->GetEntryWidgetFromItem<UBuildQueueListItem>(ListItem);
-		Widget->SetQueueIndex(BuildQueueList->GetIndexForItem(ListItem));
-	}
 }
 
 void UPlanetMenu::RemoveQueueItem(int32 Index)

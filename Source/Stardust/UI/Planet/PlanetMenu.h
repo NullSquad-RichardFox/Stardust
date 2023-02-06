@@ -9,6 +9,8 @@
 
 class UListView;
 class UButton;
+class AGameActor;
+class UTradeRoutePicker;
 
 UCLASS()
 class STARDUST_API UPlanetMenu : public UUserWidget
@@ -16,10 +18,13 @@ class STARDUST_API UPlanetMenu : public UUserWidget
 	GENERATED_BODY()
 	
 public:
-	void Preload(AActor* ParentActor);
+	UPlanetMenu(const FObjectInitializer& ObjectInitializer);
+
+	void Preload(AGameActor* ParentActor);
+	void UpdateTradeRouteList();
+	void UpdateResourceList();
 
 	void AddQueueItem(UObject* Item);
-	void RemoveQueueItem();
 	void RemoveQueueItem(int32 Index);
 
 protected:
@@ -41,5 +46,7 @@ private:
 	UFUNCTION()
 	void AddTradeRoute();
 
-	AActor* OwningActor;
+	TSubclassOf<UTradeRoutePicker> TradeRoutePickerClass;
+
+	AGameActor* OwningActor;
 };

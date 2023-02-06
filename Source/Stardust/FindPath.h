@@ -9,6 +9,9 @@
 
 class AGameActor;
 class AConnection;
+class AGameFramework;
+
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FRouteUpdateEventSignature, float, Length, float, DangerLevel);
 
 USTRUCT()
 struct STARDUST_API FFindPath
@@ -94,6 +97,7 @@ private:
 		{}
 
 	private:
+		float DangerLevelWeight = 100.f;
 		AGameModeBase* GameModePointer;
 	};
 public:
@@ -116,10 +120,49 @@ public:
 
 	void GetGameActors(TArray<AGameActor*>& OutActors);
 	void GetActorConnection(TArray<AConnection*>& OutConnections);
+	void GetPathIndexes(TArray<int32>& OutIndexes);
 
-	TArray<int32> FullPath;
 
 private:
+	TArray<int32> FullPath;
 	TArray<AGameActor*> Nodes;
 	AGameModeBase* GameModePtr;
+};
+
+class STARDUST_API UPathfinder
+{
+private:
+	typedef enum
+	{
+		FindingDestination,
+		AddingPathMidpoints
+	} InteractionType;
+
+public:
+	UPathfinder()
+		:GameModePtr(nullptr) {}
+
+	UPathfinder(AGameFramework* GameModePtr)
+		:GameModePtr(GameModePtr) {}
+
+	void ActorClicked(AGameActor* Actor);
+	void SetStartingActor(AGameActor* Actor);
+
+	void CleanUp();
+
+	void GetRouteConnections(TArray<AConnection*>& Connections);
+	void GetRouteActors(TArray<AGameActor*>& Actors);
+
+	FRouteUpdateEventSignature OnRouteUpdate;
+
+private:
+	void CreateRoute();
+	void ResetConnectionSelection();
+
+	void ToggleActorClickeEvent(bool Toggle);
+
+	TArray<AGameActor*> Nodes;
+	AGameFramework* GameModePtr;
+	FFindPath PathfinderEngine;
+	InteractionType InteractionStatus;
 };

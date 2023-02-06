@@ -8,6 +8,7 @@
 
 
 class AConnection;
+class AGameActor;
 
 UENUM()
 enum class EResourceType
@@ -356,12 +357,32 @@ private:
 	TMap<EResourceType, float> UpkeepModifiers;
 };
 
-struct FRoute
+USTRUCT()
+struct FTradeRoute
 {
-	TArray<TWeakPtr<AConnection>> RouteConnections;
+	GENERATED_BODY()
 
-	float RouteDangerLevel;
-	float RouteLength;
+	AGameActor* Origin;
+	AGameActor* Destination;
+
+	const int32* Time;
+	int32 Rate;
+	float FuelCosts;
+	float DangerLevel;
+	TMap<EResourceType, float> Resources;
+
+	friend bool operator==(const FTradeRoute& RouteA, const FTradeRoute& RouteB)
+	{
+		bool bSame = true;
+		for (const auto& [Type, Amount] : RouteA.Resources)
+		{
+			bSame = bSame && (RouteB.Resources.FindRef(Type) == Amount);
+		}
+
+		bSame = bSame && RouteA.Origin == RouteB.Origin && RouteA.Destination == RouteB.Destination && RouteA.Rate == RouteB.Rate;
+
+		return bSame;
+	}
 };
 
 USTRUCT()

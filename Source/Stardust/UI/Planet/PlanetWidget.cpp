@@ -40,11 +40,7 @@ void UPlanetWidget::PreloadData(APlanet* ParentPlanet)
 
 	OwningPlanet = ParentPlanet;
 
-	if (ASpectatorPlayerPawn* Player = Cast<ASpectatorPlayerPawn>(UGameplayStatics::GetPlayerPawn(GetWorld(), 0)))
-	{
-		Player->DisableMovement();
-		CameraTransition(OwningPlanet);
-	}
+	EnablePlayerMovement(false);
 
 	BindInput();
 	DisplayColonizeData();
@@ -165,13 +161,37 @@ void UPlanetWidget::BuildingUpdate(int32 BuildSlotIndex)
 
 	DistrictMenu->BuildingUpdate(BuildSlotIndex);
 
-	PlanetMenu->RemoveQueueItem();
+	PlanetMenu->RemoveQueueItem(0);
+}
+
+void UPlanetWidget::TradeRouteUpdate()
+{
+	PlanetMenu->UpdateResourceList();
+	PlanetMenu->UpdateTradeRouteList();
 }
 
 void UPlanetWidget::AddQueueItem(UObject* Item)
 {
 	PlanetMenu->AddQueueItem(Item);
 }
+
+void UPlanetWidget::EnablePlayerMovement(bool Value)
+{
+	ASpectatorPlayerPawn* Player = Cast<ASpectatorPlayerPawn>(UGameplayStatics::GetPlayerPawn(GetWorld(), 0));
+	if (!Player) return;
+
+	if (Value)
+	{
+		Player->EnableMovement();
+		CameraTransition(UGameplayStatics::GetPlayerPawn(GetWorld(), 0));
+	}
+	else
+	{
+		Player->DisableMovement();
+		CameraTransition(OwningPlanet);	
+	}
+}
+
 
 void UPlanetWidget::BuildSlotClicked(int32 BuildSlotIndex)
 {
@@ -192,10 +212,7 @@ void UPlanetWidget::RemoveFromParent()
 {
 	UInputFunctionLibrary::RemoveInputMapping(WidgetMappingContext);
 
-	if (ASpectatorPlayerPawn* Player = Cast<ASpectatorPlayerPawn>(UGameplayStatics::GetPlayerPawn(GetWorld(), 0)))
-		Player->EnableMovement();
-
-	CameraTransition(UGameplayStatics::GetPlayerPawn(GetWorld(), 0));
+	EnablePlayerMovement(true);
 
 	//Removes build slots
 	if (UPanelWidget* Panel = Cast<UPanelWidget>(GetRootWidget()))

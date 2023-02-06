@@ -144,33 +144,32 @@ class STARDUST_API UTradeRouteListData : public UObject
 	GENERATED_BODY()
 
 public:
-	void MakeTradeRouteData(FString StartingPlantName, FString TargetPlanetName, float Amount, float TravelTime, float Returns, const TMap<EResourceType, float>& Import, const TMap<EResourceType, float>& Export)
+	void MakeTradeRouteData(FString StartingPlantName, FString TargetPlanetName, int32 DangerLevel, const int32* TimeDays, float FuelConsumption, const TMap<EResourceType, float>& Payload)
 	{
 		InStartingPlantName = StartingPlantName;
 		InTargetPlanetName = TargetPlanetName;
-		InAmount = Amount;
-		InTravelTime = TravelTime;
-		InReturns = Returns;
-		InImport = Import;
-		InExport = Export;
+		InDangerLevel = DangerLevel;
+		InTimeDays = TimeDays;
+		InFuelConsumption = FuelConsumption;
+		InPayload = Payload;
 	}
 
-	UFUNCTION(BlueprintCallable)
-	void GetTradeRouteData(FString& StartingPlantName, FString& TargetPlanetName, float& Amount, float& TravelTime, float& Returns, TMap<EResourceType, float>& Import, TMap<EResourceType, float>& Export)
+	void GetTradeRouteData(FString& StartingPlantName, FString& TargetPlanetName, int32& DangerLevel, const int32*& TimeDays, float& FuelConsumption, TMap<EResourceType, float>& Payload)
 	{
 		StartingPlantName = InStartingPlantName;
-		TargetPlanetName = InStartingPlantName;
-		Amount = InAmount;
-		TravelTime = InTravelTime;
-		Returns = InReturns;
-		Import = InImport;
-		Export = InExport;
+		TargetPlanetName = InTargetPlanetName;
+		DangerLevel = InDangerLevel;
+		TimeDays = InTimeDays;
+		FuelConsumption = InFuelConsumption;
+		Payload = InPayload;
 	}
 
 private:
 	FString InStartingPlantName, InTargetPlanetName;
-	float InAmount, InTravelTime, InReturns;
-	TMap<EResourceType, float> InImport, InExport;
+	int32 InDangerLevel;
+	const int32* InTimeDays;
+	float InFuelConsumption;
+	TMap<EResourceType, float> InPayload;
 };
 
 UCLASS(BlueprintType)

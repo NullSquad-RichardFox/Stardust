@@ -10,6 +10,7 @@
 #include "Stardust/GameObjects/Planet.h"
 #include "Blueprint/UserWidget.h"
 #include "Stardust/FindPath.h"
+#include "Kismet/GameplayStatics.h"
 
 
 
@@ -46,6 +47,7 @@ void AGameFramework::BeginPlay()
 void AGameFramework::DayUpdate()
 {
 	DayUpdateEvent.Broadcast();
+	UpdateTimers();
 }
 
 void AGameFramework::MonthUpdate()
@@ -193,41 +195,6 @@ void AGameFramework::GenerateConnections(float MaxPlanetConnectionLength, int32 
 	}
 }
 
-bool AGameFramework::FindGameActor(AGameActor* Item, int32& Index)
-{
-	return GameActors.Find(Item, Index);
-}
-
-bool AGameFramework::FindActorConnection(AConnection* Connection, int32& Index)
-{
-	return GameActorConnections.Find(Connection, Index);
-}
-
-bool AGameFramework::IsValidGameActorIndex(int32 Index)
-{
-	return GameActors.IsValidIndex(Index);
-}
-
-AGameActor* AGameFramework::GetGameActorRef(int32 Index)
-{
-	return GameActors[Index];
-}
-
-int32 AGameFramework::GetGameActorNum()
-{
-	return GameActors.Num();
-}
-
-AConnection* AGameFramework::GetActorConnectionRef(int32 Index)
-{
-	return GameActorConnections[Index];
-}
-
-AGameFramework::UPathfinder& AGameFramework::GetPathfinder()
-{
-	return Pathfinder;
-}
-
 FString AGameFramework::GetDisplayTimeString()
 {
 	return FString::FromInt(GameplayTime.X) + ". " + FString::FromInt(GameplayTime.Y) + ". " + FString::FromInt(GameplayTime.Z);
@@ -238,67 +205,69 @@ void AGameFramework::SetTimeSpeedModifier(float Value)
 	TimeSpeedMultiplier = FMath::Clamp(Value, 0, 100.f);
 }
 
-
-
-void AGameFramework::UPathfinder::ActorClicked(AGameActor* Actor)
+void AGameFramework::PauseTime()
 {
-	switch (InteractionStatus)
+	if (TimeSpeedMultiplier != 0)
 	{
-	case FindingDestination:
-		Nodes.Add(Actor);
-		CreateRoute();
-		InteractionStatus = AddingPathMidpoints;
-		break;
-
-	case AddingPathMidpoints:
-		int32 Index;
-		if (!Nodes.Find(Actor, Index))
-		{
-			Nodes.EmplaceAt(Nodes.Num() - 1, Actor);
-			CreateRoute();
-		}
-		else if (Index != 0)
-		{
-			Nodes.Remove(Actor);
-
-			if (Nodes.Num() == 1)
-			{
-				InteractionStatus = FindingDestination;
-			}
-			else
-			{
-				CreateRoute();
-			}
-		}
-		break;
+		TempTimeModifier = TimeSpeedMultiplier;
+		TimeSpeedMultiplier = 0.f;
 	}
 }
 
-void AGameFramework::UPathfinder::SetStartingActor(AGameActor* Actor)
+void AGameFramework::ResumeTime()
 {
-	if (!GameModePtr) return;
-
-	Nodes.Empty();
-	Nodes.Add(Actor);
-
-	ToggleActorClickeEvent(true);
-
-	PathfinderEngine.SetGameModePtr(GameModePtr);
-	InteractionStatus = FindingDestination;
-}
-
-void AGameFramework::UPathfinder::ToggleActorClickeEvent(bool Toggle)
-{
-	if (!GameModePtr) return;
-
-	for (int32 i = 0; i < GameModePtr->GetGameActorNum(); i++)
+	if (TempTimeModifier != -1.f)
 	{
-		GameModePtr->GetGameActorRef(i)->SetFindRouteActive(Toggle);
+		TimeSpeedMultiplier = TempTimeModifier;
+		TempTimeModifier = -1.f;
 	}
 }
 
-void AGameFramework::UPathfinder::CreateRoute()
+
+const FGameTimerData* AGameFramework::SetTimer(UObject* Object, FName FunctionName, int32 NumDays, bool bLoop)
 {
-	PathfinderEngine.SetNodes(Nodes);
-	PathfinderEngine.FindPath();
+	FGameTimerData Data(NumDays, bLoop);
+	Data.BindDelegate(Object, FunctionName);
+
+	int32 Index = Timers.Add(Data);
+
+	return &Timers[Index];
+}
+
+void AGameFramework::SendTradeRoute(FTradeRoute TradeRoute)
+{
+	TArray<AActor*> Corporations;
+	UGameplayStatics::GetAllActorsOfClass(GetWorld(), APlayerCorporation::StaticClass(), Corporations);
+
+	if (Corporations.IsValidIndex(0))
+	{
+		if (APlayerCorporation* PlayerCorp = Cast<APlayerCorporation>(Corporations[0]))
+		{
+			PlayerCorp->SendTradeRoute(TradeRoute);
+		}
+	}
+
+	//send ship
+}
+
+void AGameFramework::UpdateTimers()
+{
+	for (int32 i = 0; i < Timers.Num(); i++)
+	{
+		FGameTimerData& Timer = Timers[i];
+
+		Timer.GetTime()--;
+		if (Timer.GetTime() > 0) continue;
+
+		Timer.CallDelegate();
+
+		if (Timer.CanLoop())
+		{
+			Timer.SetTime(Timer.GetRate());
+		}
+		else
+		{
+			Timers.RemoveAt(i);
+		}
+	}
 }
