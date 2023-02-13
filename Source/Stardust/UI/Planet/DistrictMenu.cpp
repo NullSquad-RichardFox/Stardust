@@ -32,30 +32,6 @@ void UDistrictMenu::NativeOnInitialized()
 	}
 }
 
-void UDistrictMenu::RemoveFromParent()
-{
-	Super::RemoveFromParent();
-
-	UInputFunctionLibrary::RemoveInputMapping(WidgetMappingContext);
-	RemoveBuildingSlots();
-}
-
-void UDistrictMenu::MonthlyUpdate()
-{
-	APlanet* OwningPlanet = Cast<APlanet>(OwningActor);
-	if (!OwningPlanet) return;
-	if (CurrentBuildSlotIndex == -1) return;
-
-	const FDistrict& District = OwningPlanet->GetBuildSlot(CurrentBuildSlotIndex).District;
-
-	PopulateResourceList(District);
-	PopulateJobList(District);
-}
-
-
-
-
-
 void UDistrictMenu::PreloadData(AGameActor* ParentActor)
 {
 	if (!ParentActor) return;
@@ -63,28 +39,6 @@ void UDistrictMenu::PreloadData(AGameActor* ParentActor)
 	OwningActor = ParentActor;
 	CurrentBuildSlotIndex = -1;
 	LastBuildingIndexShown = -1;
-}
-
-void UDistrictMenu::BuildingUpdate(int32 BuildSlotIndex)
-{
-	if (BuildSlotIndex != CurrentBuildSlotIndex) return;
-	if (!BuildingSlotWidgetClass) return;
-
-	APlanet* OwningPlanet = Cast<APlanet>(OwningActor);
-	if (!OwningPlanet) return;
-
-
-
-	const FDistrict& District = OwningPlanet->GetBuildSlot(CurrentBuildSlotIndex).District;
-
-	PopulateResourceList(District);
-	PopulateJobList(District);
-
-	SetDistrictName(District);
-	SetCanBuildDistricts(true, BuildSlotIndex);
-
-	RemoveBuildingSlots();
-	GenerateBuildingSlots(District);
 }
 
 bool UDistrictMenu::Reload(int32 BuildSlotIndex)
@@ -107,6 +61,9 @@ bool UDistrictMenu::Reload(int32 BuildSlotIndex)
 
 	CurrentBuildSlotIndex = BuildSlotIndex;
 	const FDistrict& District = OwningPlanet->GetBuildSlot(CurrentBuildSlotIndex).District;
+
+	OwningPlanet->BuildingFinishedEvent.AddDynamic(this, &UDistrictMenu::BuildingUpdate);
+	OwningPlanet->PopulationChangedEvent.AddDynamic(this, &UDistrictMenu::PopulationUpdate);
 
 	BindInput();
 
@@ -131,6 +88,48 @@ bool UDistrictMenu::Reload(int32 BuildSlotIndex)
 	}
 
 	return true;
+}
+
+void UDistrictMenu::MonthlyUpdate()
+{
+	APlanet* OwningPlanet = Cast<APlanet>(OwningActor);
+	if (!OwningPlanet) return;
+	if (CurrentBuildSlotIndex == -1) return;
+
+	const FDistrict& District = OwningPlanet->GetBuildSlot(CurrentBuildSlotIndex).District;
+
+	PopulateResourceList(District);
+}
+
+void UDistrictMenu::BuildingUpdate(int32 BuildSlotIndex)
+{
+	if (BuildSlotIndex != CurrentBuildSlotIndex) return;
+	if (!BuildingSlotWidgetClass) return;
+
+	APlanet* OwningPlanet = Cast<APlanet>(OwningActor);
+	if (!OwningPlanet) return;
+
+
+
+	const FDistrict& District = OwningPlanet->GetBuildSlot(CurrentBuildSlotIndex).District;
+
+	PopulateResourceList(District);
+	PopulateJobList(District);
+
+	SetDistrictName(District);
+	SetCanBuildDistricts(true, BuildSlotIndex);
+
+	RemoveBuildingSlots();
+	GenerateBuildingSlots(District);
+}
+
+void UDistrictMenu::PopulationUpdate()
+{
+	APlanet* OwningPlanet = Cast<APlanet>(OwningActor);
+	if (!OwningPlanet) return;
+	if (CurrentBuildSlotIndex == -1) return;
+
+	PopulateJobList(OwningPlanet->GetBuildSlot(CurrentBuildSlotIndex).District);
 }
 
 void UDistrictMenu::FeatureInfoHovered()
@@ -338,7 +337,7 @@ void UDistrictMenu::PopulateJobList(const FDistrict& District)
 		OccupiedJobs.Contains(JobType);
 
 		UJobListData* Item = NewObject<UJobListData>(this);
-		Item->MakeJobData(JobType, JobCount, OccupiedJobs.Contains(JobType) ? OccupiedJobs[JobType] : 0);
+		Item->MakeJobData(JobType, JobCount, OccupiedJobs.Contains(JobType) ? OccupiedJobs[JobType] : 0, CurrentBuildSlotIndex, OwningActor);
 		JobList->AddItem(Item);
 	}
 }
@@ -369,6 +368,9 @@ void UDistrictMenu::PopulateDistrictList()
 	{
 		for (int32 i = 0; i < DistrictTypeEnum->NumEnums() - 1; i++)
 		{
+			if ((EDistrictType)i == EDistrictType::DistrictAdministration)
+				continue;
+
 			UDistrictListData* Item = NewObject<UDistrictListData>(this);
 			Item->MakeDistrictData(CurrentBuildSlotIndex, (EDistrictType)i, OwningActor);
 			DistrictList->AddItem(Item);
@@ -420,6 +422,7 @@ void UDistrictMenu::RemoveBuildingSlots()
 			BuildingSlot->RemoveFromParent();
 	}
 }
+
 void UDistrictMenu::GenerateBuildingSlots(const FDistrict& District)
 {
 	UPanelWidget* Panel = Cast<UPanelWidget>(GetRootWidget());
@@ -438,4 +441,12 @@ void UDistrictMenu::GenerateBuildingSlots(const FDistrict& District)
 			CanvasSlot->SetPosition(FVector2D(1300.f + 125.f * (i % 5), 375.f + 125.f * (i / 5)));
 		}
 	}
+}
+
+void UDistrictMenu::RemoveFromParent()
+{
+	Super::RemoveFromParent();
+
+	UInputFunctionLibrary::RemoveInputMapping(WidgetMappingContext);
+	RemoveBuildingSlots();
 }

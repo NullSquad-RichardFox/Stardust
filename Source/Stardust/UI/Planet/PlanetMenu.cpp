@@ -29,6 +29,37 @@ void UPlanetMenu::NativeOnInitialized()
 	}
 }
 
+void UPlanetMenu::Preload(AGameActor* ParentActor)
+{
+	if (!ParentActor) return;
+	APlanet* OwningPlanet = Cast<APlanet>(ParentActor);
+	if (!OwningPlanet) return;
+	
+	OwningActor = ParentActor;
+
+	OwningPlanet->TradeRouteChangedEvent.AddDynamic(this, &UPlanetMenu::TradeRouteUpdate);
+	OwningPlanet->BuildingFinishedEvent.AddDynamic(this, &UPlanetMenu::BuildingUpdate);
+
+	UpdateResourceList();
+	UpdateTradeRouteList();
+}
+
+void UPlanetMenu::MonthlyUpdate()
+{
+	UpdateResourceList();
+}
+
+void UPlanetMenu::TradeRouteUpdate()
+{
+	UpdateResourceList();
+	UpdateTradeRouteList();
+}
+
+void UPlanetMenu::BuildingUpdate(int32 BuildSlotIndex)
+{
+	RemoveQueueItem(0);
+}
+
 void UPlanetMenu::AddTradeRoute()
 {
 	if (!TradeRoutePickerClass) return;
@@ -42,20 +73,6 @@ void UPlanetMenu::AddTradeRoute()
 		PlanetWidget->SetVisibility(ESlateVisibility::Collapsed);
 		PlanetWidget->EnablePlayerMovement(true);
 	}
-}
-
-void UPlanetMenu::MonthlyUpdate()
-{
-	UpdateResourceList();
-}
-
-void UPlanetMenu::Preload(AGameActor* ParentActor)
-{
-	if (!ParentActor) return;
-	OwningActor = ParentActor;
-
-	UpdateResourceList();
-	UpdateTradeRouteList();
 }
 
 void UPlanetMenu::UpdateTradeRouteList()

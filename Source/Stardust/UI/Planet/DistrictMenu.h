@@ -25,7 +25,6 @@ class STARDUST_API UDistrictMenu : public UUserWidget
 public:
 	void PreloadData(AGameActor* OwningActor);
 	bool Reload(int32 BuildSlotIndex);
-	void BuildingUpdate(int32 BuildSlotIndex);
 
 	void BuildingSlotClicked(int32 BuildingSlotIndex);
 
@@ -40,13 +39,18 @@ protected:
 	UFUNCTION(BlueprintImplementableEvent)
 	void DisplayNormalBlueprint();
 
-	UFUNCTION()
-	void MonthlyUpdate();
-
 	virtual void NativeOnInitialized() override;
 	virtual void RemoveFromParent() override;
 
 private:
+	UFUNCTION()
+	void MonthlyUpdate();
+
+	UFUNCTION()
+	void BuildingUpdate(int32 BuildSlotIndex);
+	UFUNCTION()
+	void PopulationUpdate();
+
 	UFUNCTION()
 	void FeatureInfoHovered();
 	UFUNCTION()

@@ -26,9 +26,6 @@ class STARDUST_API UPlanetWidget : public UUserWidget
 public:
 	// call right after AddToViewport
 	void PreloadData(APlanet* ParentPlanet);
-
-	void BuildingUpdate(int32 BuildSlotIndex);
-	void TradeRouteUpdate();
 	
 	void BuildSlotClicked(int32 BuildSlotIndex);
 
@@ -40,15 +37,22 @@ protected:
 	virtual void RemoveFromParent() override;
 
 private:
+	// GameMode delegates
 	UFUNCTION()
 	void MonthUpdate();
 
+	// Planet delegates
+	UFUNCTION()
+	void BuildingUpdate(int32 BuildSlotIndex);
+
+	// Widget events
 	UFUNCTION()
 	void ColonizePlanet();
 	UFUNCTION()
 	void FeatureInfoHovered();
 	UFUNCTION()
 	void FeatureInfoUnhovered();
+
 
 	void DisplayPlanetData();
 	void DisplayColonizeData();

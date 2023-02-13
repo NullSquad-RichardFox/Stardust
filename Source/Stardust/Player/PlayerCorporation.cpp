@@ -4,6 +4,7 @@
 #include "PlayerCorporation.h"
 #include "Stardust/GameModes/GameFramework.h"
 #include "Stardust/GameObjects/Planet.h"
+#include "Stardust/CoreDataStructs.h"
 
 
 
@@ -49,9 +50,23 @@ void APlayerCorporation::SendTradeRoute(FTradeRoute TradeRoute)
 
 void APlayerCorporation::GetMoney()
 {
+	float TotalValue = 0.f;
+
+	for (const auto& [Type, Amount] : TradeRoutes[0].Resources)
+	{
+		if (const FResourcePrice* Price = UStructDataLibrary::GetData(Type))
+		{
+			TotalValue += Price->Price * Amount;
+		}
+	}
+		
+
+
 	// Payment
 
-	Money += 0.f;
+	Money += TotalValue;
+
+	UE_LOG(LogTemp, Warning, TEXT("Money: %f"), Money)
 
 	// Syncs planet data and updates widgets
 	const FTradeRoute& TradeRoute = TradeRoutes[0];

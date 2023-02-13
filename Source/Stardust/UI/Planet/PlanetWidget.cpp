@@ -39,10 +39,11 @@ void UPlanetWidget::PreloadData(APlanet* ParentPlanet)
 	if (!ParentPlanet || !BuildSlotWidgetClass) return;
 
 	OwningPlanet = ParentPlanet;
+	OwningPlanet->BuildingFinishedEvent.AddDynamic(this, &UPlanetWidget::BuildingUpdate);
 
 	EnablePlayerMovement(false);
-
 	BindInput();
+
 	DisplayColonizeData();
 }
 
@@ -158,16 +159,6 @@ void UPlanetWidget::BuildingUpdate(int32 BuildSlotIndex)
 
 	EnergyBar->SetAlpha(OwningPlanet->EnergyConsumption / OwningPlanet->EnergyProduction);
 	EnergyBar->SetCount(OwningPlanet->EnergyFinal);
-
-	DistrictMenu->BuildingUpdate(BuildSlotIndex);
-
-	PlanetMenu->RemoveQueueItem(0);
-}
-
-void UPlanetWidget::TradeRouteUpdate()
-{
-	PlanetMenu->UpdateResourceList();
-	PlanetMenu->UpdateTradeRouteList();
 }
 
 void UPlanetWidget::AddQueueItem(UObject* Item)

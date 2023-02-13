@@ -83,6 +83,9 @@ public:
 	UFUNCTION(BlueprintCallable)
 	FString GetDisplayTimeString();
 
+	UFUNCTION(BlueprintCallable)
+	float GetPlayerMoney();
+
 protected:
 	virtual void BeginPlay() override;
 	virtual void Tick(float DeltaTime) override;

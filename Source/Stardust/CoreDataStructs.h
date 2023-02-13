@@ -93,7 +93,8 @@ enum class EDistrictType : uint8
 	GlassManufacture		UMETA(DisplayName = ""),
 	SiliconManufacture		UMETA(DisplayName = ""),
 	ElectronicsManufacture	UMETA(DisplayName = ""),
-	PowerProduction			UMETA(DisplayName = "")
+	PowerProduction			UMETA(DisplayName = ""),
+	DistrictAdministration	UMETA(DisplayName = "")
 };
 
 UENUM()
@@ -127,6 +128,7 @@ public:
 	static const FModifierData* GetData(EDistrictModifier ModifierType);
 	static const FModifierData* GetData(EPlanetModifier ModifierType);
 	static const FFeatureData* GetData(EFeatureType FeatureType);
+	static const FResourcePrice* GetData(EResourceType ResourceType);
 
 private:
 	UDataTable* LoadDataTable(const FName& FilePath);
@@ -138,6 +140,7 @@ private:
 	static UDataTable* DistrictModifiersDataTable;
 	static UDataTable* PlanetModifiersDataTable;
 	static UDataTable* FeatureDataTable;
+	static UDataTable* ResourcePriceDataTable;
 };
 
 UDataTable* UStructDataLibrary::PlanetSizeRangeDataTable = nullptr;
@@ -147,6 +150,7 @@ UDataTable* UStructDataLibrary::JobDataTable = nullptr;
 UDataTable* UStructDataLibrary::DistrictModifiersDataTable = nullptr;
 UDataTable* UStructDataLibrary::PlanetModifiersDataTable = nullptr;
 UDataTable* UStructDataLibrary::FeatureDataTable = nullptr;
+UDataTable* UStructDataLibrary::ResourcePriceDataTable = nullptr;
 
 
 
@@ -259,6 +263,16 @@ public:
 };
 
 USTRUCT()
+struct FResourcePrice : public FTableRowBase
+{
+	GENERATED_BODY()
+
+public:
+	UPROPERTY(EditAnywhere)
+	float Price;
+};
+
+USTRUCT()
 struct FDistrict
 {
 	GENERATED_BODY()
@@ -297,11 +311,17 @@ public:
 		ResourceModifiers(ResourceModifiers)
 	{}
 
-	TMap<EResourceType, float> GetDistrictProduction() const;
-	TMap<EResourceType, float> GetDistrictUpkeep() const;
+	typedef TMap<EResourceType, float> FResourceMap;
+
+	void AddDistrictProduction(FResourceMap& ResourceStorage) const;
+
+	float GetTotalDistrictEnergy() const;
+	FResourceMap GetDistrictProduction() const;
+	FResourceMap GetDistrictUpkeep() const;
 
 	void PopulateJob(EJobType Job);
 	void FreeJob(EJobType Job);
+	TOptional<EJobType> GetFreeJob() const;
 
 	void AddBuilding(EBuildingType BuildingType);
 	void RemoveBuilding(EBuildingType BuildingType);
@@ -322,11 +342,12 @@ public:
 
 	static EJobType GetDistrictDefaultJob(EDistrictType Type);
 
-	TOptional<EJobType> GetFreeJob() const;
-
 private:
-	TMap<EResourceType, float> AddUpProductionModifiers();
-	TMap<EResourceType, float> AddUpUpkeepModifiers();
+	FResourceMap AddUpProductionModifiers();
+	FResourceMap AddUpUpkeepModifiers();
+
+	bool CanBeMaintained(FResourceMap& ResourceStorage, EBuildingType Building) const;
+	int32 CanBeMaintained(const FResourceMap& ResourceStorage, EJobType JobType, int32 jobCount) const;
 
 public:
 	UPROPERTY(VisibleAnywhere)
@@ -353,8 +374,10 @@ private:
 	UPROPERTY(VisibleAnywhere, meta = (AllowPrivateAccess = true))
 	TArray<EDistrictModifier> ResourceModifiers;
 
-	TMap<EResourceType, float> ProductionModifiers;
-	TMap<EResourceType, float> UpkeepModifiers;
+	FResourceMap ProductionModifiers;
+	FResourceMap UpkeepModifiers;
+
+	mutable TArray<int32> DisabledBuildings;
 };
 
 USTRUCT()

@@ -42,7 +42,9 @@ void APlanet::OnDayUpdate()
 		PartialPopulation -= PopulationGrowthThreshold;
 
 		UnemployedPopulation++;
+
 		OccupyJobs();
+		PopulationChangedEvent.Broadcast();
 	}
 }
 
@@ -226,21 +228,35 @@ void APlanet::GeneratePlanetaryFeature(int32 FeatureIndex)
 
 void APlanet::ColonizePlanet(APlayerCorporation* Corporation)
 {
-	if (Corporation)
+	if (!Corporation) return;
+
+	PlanetCorporation = Corporation;
+	PlanetCorporation.GetValue()->AddPlanet(this);
+
+	if (AGameFramework* GameMode = Cast<AGameFramework>(GetWorld()->GetAuthGameMode()))
 	{
-		PlanetCorporation = Corporation;
-		PlanetCorporation.GetValue()->AddPlanet(this);
+		MaxBuildStackCount = GameMode->PlanetStartingBuildStackCount;
 
-		if (AGameFramework* GameMode = Cast<AGameFramework>(GetWorld()->GetAuthGameMode()))
-		{
-			MaxBuildStackCount = GameMode->PlanetStartingBuildStackCount;
-
-			Population = GameMode->PlanetStartingPopulation;
-			UnemployedPopulation = Population;
-			PopulationGrowth = GameMode->PlanetStartingPopulationGrowth;
-			PopulationGrowthThreshold = GameMode->PopulationGrowthThreshold;
-		}
+		Population = GameMode->PlanetStartingPopulation;
+		UnemployedPopulation = Population;
+		PopulationGrowth = GameMode->PlanetStartingPopulationGrowth;
+		PopulationGrowthThreshold = GameMode->PopulationGrowthThreshold;
 	}
+
+	Population = 22;
+	UnemployedPopulation = Population;
+
+	// PlanetAdmin - Lvl 2
+	BuildSlots[0].District.UpgradeDistrict(EDistrictType::DistrictAdministration);
+	BuildSlots[0].District.UpgradeDistrict(EDistrictType::DistrictAdministration);
+
+	// Ore Collection - Lvl 1
+	BuildSlots[1].District.UpgradeDistrict(EDistrictType::OreCollection);
+
+	// Power Production - Lvl 1
+	BuildSlots[2].District.UpgradeDistrict(EDistrictType::PowerProduction);
+
+	OccupyJobs();
 }
 
 void APlanet::TradeRouteSent(const FTradeRoute& TradeRoute)
@@ -250,8 +266,7 @@ void APlanet::TradeRouteSent(const FTradeRoute& TradeRoute)
 
 	TradeRoutes.Add(TradeRoute);
 
-	if (PlanetWidget)
-		PlanetWidget->TradeRouteUpdate();
+	TradeRouteChangedEvent.Broadcast();
 }
 
 void APlanet::TradeRouteFinished(const FTradeRoute& TradeRoute)
@@ -266,8 +281,21 @@ void APlanet::TradeRouteFinished(const FTradeRoute& TradeRoute)
 		}
 	}
 
-	if (PlanetWidget)
-		PlanetWidget->TradeRouteUpdate();
+	TradeRouteChangedEvent.Broadcast();
+}
+
+void APlanet::FreeJob(int32 BuildSlotIndex, EJobType JobType)
+{
+	if (!BuildSlots.IsValidIndex(BuildSlotIndex)) return;
+
+	BuildSlots[BuildSlotIndex].District.FreeJob(JobType);
+}
+
+void APlanet::PopulateJob(int32 BuildSlotIndex, EJobType JobType)
+{
+	if (!BuildSlots.IsValidIndex(BuildSlotIndex)) return;
+
+	BuildSlots[BuildSlotIndex].District.PopulateJob(JobType);
 }
 
 
@@ -430,7 +458,7 @@ void APlanet::HandleBuilding()
 			BuildSlots[Request->BuildSlotIndex].District.AddBuilding(Type);
 		}
 
-		UpdateWidgets(Request->BuildSlotIndex);
+		BuildingFinishedEvent.Broadcast(Request->BuildSlotIndex);
 		OccupyJobs();
 
 		Request->Status = EBuildingStatus::Completed;
@@ -463,23 +491,18 @@ void APlanet::RecalculateProduction()
 
 	for (const auto& [District, Features] : BuildSlots)
 	{
-		EnergyProduction += District.EnergyProduction;
-		EnergyConsumption += District.EnergyUpkeep;
+		EnergyFinal += District.GetTotalDistrictEnergy();
+		District.AddDistrictProduction(ResourceStorage);
 
-		for (const TPair<EResourceType, float>& Production : District.GetDistrictProduction())
+		for (const auto& [ResType, ResAmount] : District.GetDistrictProduction())
 		{
-			ResourceProduction.FindOrAdd(Production.Key) += Production.Value * (ProductionModifiers.Contains(Production.Key) ? ProductionModifiers[Production.Key] : 1);
-			ResourceStorage.FindOrAdd(Production.Key) += Production.Value * (ProductionModifiers.Contains(Production.Key) ? ProductionModifiers[Production.Key] : 1);
+			ResourceProduction.FindOrAdd(ResType) += ResAmount;
 		}
-
-		for (const TPair<EResourceType, float>& Upkeep : District.GetDistrictUpkeep())
+		for (const auto& [ResType, ResAmount] : District.GetDistrictUpkeep())
 		{
-			ResourceUpkeep.FindOrAdd(Upkeep.Key) += Upkeep.Value * (UpkeepModifiers.Contains(Upkeep.Key) ? UpkeepModifiers[Upkeep.Key] : 1);
-			ResourceStorage.FindOrAdd(Upkeep.Key) -= Upkeep.Value * (UpkeepModifiers.Contains(Upkeep.Key) ? UpkeepModifiers[Upkeep.Key] : 1);
+			ResourceUpkeep.FindOrAdd(ResType) += ResAmount;
 		}
 	}
-
-	EnergyFinal = EnergyProduction - EnergyConsumption;
 }
 
 void APlanet::OccupyJobs()
@@ -504,13 +527,6 @@ void APlanet::OccupyJobs()
 
 		} while (!bJobFound && Index < BuildSlots.Num());
 	}
-}
-
-void APlanet::UpdateWidgets(int32 BuildSlotIndex)
-{
-	if (!PlanetWidget) return;
-
-	PlanetWidget->BuildingUpdate(BuildSlotIndex);
 }
 
 

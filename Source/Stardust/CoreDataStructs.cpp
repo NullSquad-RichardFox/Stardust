@@ -14,13 +14,13 @@ UStructDataLibrary::UStructDataLibrary()
 	PlanetModifiersDataTable = LoadDataTable("DataTable'/Game/DataTables/DT_PlanetModifierData.DT_PlanetModifierData'");										
 	FeatureDataTable = LoadDataTable("DataTable'/Game/DataTables/DT_FeaturesData.DT_FeaturesData'");
 	PlanetSizeRangeDataTable = LoadDataTable("DataTable'/Game/DataTables/DT_PlanetSizeRangeData.DT_PlanetSizeRangeData'");
+	ResourcePriceDataTable = LoadDataTable("DataTable'/Game/DataTables/DT_ResourcePriceData.DT_ResourcePriceData'");
 }
 
 UDataTable* UStructDataLibrary::LoadDataTable(const FName& FilePath)
 {
 	if (UDataTable* DT = Cast<UDataTable>(StaticLoadObject(UDataTable::StaticClass(), NULL, *FilePath.ToString())))
 	{
-		UE_LOG(LogTemp, Warning, TEXT("DT cast"))
 		return DT;
 	}
 
@@ -122,12 +122,91 @@ const FFeatureData* UStructDataLibrary::GetData(EFeatureType FeatureType)
 	return nullptr;
 }
 
-
-
-
-TMap<EResourceType, float> FDistrict::GetDistrictProduction() const
+const FResourcePrice* UStructDataLibrary::GetData(EResourceType ResourceType)
 {
-	TMap<EResourceType, float> JobProduction;
+	if (!ResourcePriceDataTable)
+		return nullptr;
+
+	if (UEnum* Enum = FindObject<UEnum>(ANY_PACKAGE, TEXT("EResourceType"), true))
+	{
+		FString ContextString("UStructDataLibrary");
+		return ResourcePriceDataTable->FindRow<FResourcePrice>(*Enum->GetNameStringByIndex((int32)ResourceType), ContextString);
+	}
+
+	return nullptr;
+}
+
+
+
+
+void FDistrict::AddDistrictProduction(FResourceMap& ResourceStorage) const
+{
+	// Maintains buildings
+	for (EBuildingType Building : Buildings)
+		CanBeMaintained(ResourceStorage, Building);
+	
+
+	// Disables jobs of disabled buildings
+	TMap<EJobType, int32> DisabledJobs;
+	for (int32 BuildingIndex : DisabledBuildings)
+	{
+		for (const auto& [JobType, JobCount] : UStructDataLibrary::GetData(Buildings[BuildingIndex])->BuildingJobs)
+		{
+			DisabledJobs.FindOrAdd(JobType) += JobCount;
+		}
+	}
+
+	for (const auto& [DisabledJobType, DisabledJobCount] : DisabledJobs)
+	{
+		const int32& OccupiedJobCount = OccupiedJobs[DisabledJobType];
+		const int32& DistrictJobCount = DistrictJobs[DisabledJobType];
+
+		DisabledJobs[DisabledJobType] = OccupiedJobCount - DistrictJobCount + DisabledJobCount;
+	}
+
+
+	// Jobs
+	for (const TPair<EJobType, int32>& Job : OccupiedJobs)
+	{
+		const EJobType JobType = Job.Key;
+		const int32 JobCount = Job.Value - DisabledJobs.FindRef(Job.Key);
+
+		const FJobData* Data = UStructDataLibrary::GetData(JobType);
+		const int32 MaintainableJobCount = CanBeMaintained(ResourceStorage, JobType, JobCount);
+
+
+		for (const auto& [UpkResType, UpkResAmount] : Data->ResourceUpkeep)
+		{
+			const float UpkModif = UpkeepModifiers.Contains(UpkResType) ? UpkeepModifiers[UpkResType] : 1;
+			ResourceStorage.FindOrAdd(UpkResType) -= UpkResAmount * UpkModif * MaintainableJobCount;
+		}
+
+		for (const auto& [ProdResType, ProdResAmount] : Data->ResourceProduction)
+		{
+			const float ProdModif = ProductionModifiers.Contains(ProdResType) ? ProductionModifiers[ProdResType] : 1;
+			ResourceStorage.FindOrAdd(ProdResType) += ProdResAmount * JobCount * ProdModif * MaintainableJobCount;
+		}
+	}
+}
+
+float FDistrict::GetTotalDistrictEnergy() const
+{
+	float TotalEnergy = EnergyProduction - EnergyUpkeep;
+
+	for (EBuildingType BuildingType : Buildings)
+	{
+		const FBuildingData* Data = UStructDataLibrary::GetData(BuildingType);
+
+		TotalEnergy += Data->EnergyProduction;
+		TotalEnergy -= Data->EnergyUpkeep;
+	}
+
+	return TotalEnergy;
+}
+
+FDistrict::FResourceMap FDistrict::GetDistrictProduction() const
+{
+	FResourceMap JobProduction;
 
 	for (const TPair<EJobType, int32>& Job : OccupiedJobs)
 		for (const TPair<EResourceType, float>& Resource : UStructDataLibrary::GetData(Job.Key)->ResourceProduction)
@@ -140,9 +219,9 @@ TMap<EResourceType, float> FDistrict::GetDistrictProduction() const
 	return JobProduction;
 }
 
-TMap<EResourceType, float> FDistrict::GetDistrictUpkeep() const
+FDistrict::FResourceMap FDistrict::GetDistrictUpkeep() const
 {
-	TMap<EResourceType, float> JobUpkeep;
+	FResourceMap JobUpkeep;
 
 	for (const EBuildingType& Building : Buildings)
 		for (const TPair<EResourceType, float>& BuildingUpkeep : UStructDataLibrary::GetData(Building)->ResourceUpkeep)
@@ -159,9 +238,9 @@ TMap<EResourceType, float> FDistrict::GetDistrictUpkeep() const
 	return JobUpkeep;
 }
 
-TMap<EResourceType, float> FDistrict::AddUpProductionModifiers()
+FDistrict::FResourceMap FDistrict::AddUpProductionModifiers()
 {
-	TMap<EResourceType, float> Modifiers;
+	FResourceMap Modifiers;
 
 	for (const EDistrictModifier& Modifier : ResourceModifiers)
 		for (const TPair<EResourceType, float>& ResourceModifier : UStructDataLibrary::GetData(Modifier)->ProductionModifiers)
@@ -170,15 +249,51 @@ TMap<EResourceType, float> FDistrict::AddUpProductionModifiers()
 	return Modifiers;
 }
 
-TMap<EResourceType, float> FDistrict::AddUpUpkeepModifiers()
+FDistrict::FResourceMap FDistrict::AddUpUpkeepModifiers()
 {
-	TMap<EResourceType, float> Modifiers;
+	FResourceMap Modifiers;
 
 	for (const EDistrictModifier& Modifier : ResourceModifiers)
 		for (const TPair<EResourceType, float>& ResourceModifier : UStructDataLibrary::GetData(Modifier)->UpkeepModifiers)
 			Modifiers.FindOrAdd(ResourceModifier.Key) += ResourceModifier.Value;
 
 	return Modifiers;
+}
+
+bool FDistrict::CanBeMaintained(FResourceMap& ResourceStorage, EBuildingType Building) const
+{
+	const FBuildingData* Data = UStructDataLibrary::GetData(Building);
+
+	for (const auto& [ResType, ResAmount] : Data->ResourceUpkeep)
+	{
+		if (ResourceStorage.FindRef(ResType) < ResAmount)
+		{
+			DisabledBuildings.Add(Buildings.Find(Building));
+			ResourceStorage[ResType] -= ResAmount;
+			return false;
+		}
+	}
+
+	if (DisabledBuildings.Contains(Buildings.Find(Building)))
+	{
+		DisabledBuildings.Remove(Buildings.Find(Building));
+	}
+
+	return true;
+}
+
+int32 FDistrict::CanBeMaintained(const FResourceMap& ResourceStorage, EJobType JobType, int32 JobCount) const
+{
+	const FJobData* Data = UStructDataLibrary::GetData(JobType);
+
+	for (const auto& [ResType, ResAmount] : Data->ResourceUpkeep)
+	{
+		const int32 StoredResAmount = ResourceStorage.FindRef(ResType);
+		
+		JobCount = FMath::Min(StoredResAmount / (int32)ResAmount, JobCount);
+	}
+
+	return JobCount;
 }
 
 EJobType FDistrict::GetDistrictDefaultJob(EDistrictType Type)

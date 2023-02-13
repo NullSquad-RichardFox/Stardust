@@ -106,7 +106,6 @@ void UTradeRoutePicker::AddResourceItems()
 
 void UTradeRoutePicker::RemoveResourceItems()
 {
-
 	for (auto& [Type, Amount] : Resources)
 	{
 		Amount = FMath::Clamp(Amount--, 0, MAX_FLT);
@@ -122,7 +121,7 @@ void UTradeRoutePicker::PickResource()
 		TArray<EResourceType> Keys;
 		StartingPlanet->GetResourceStorage().GetKeys(Keys);
 
-		if (Keys.IsValidIndex(ResourceIndex)) return;
+		if (!Keys.IsValidIndex(ResourceIndex)) return;
 
 		EResourceType ChoosenType = Keys[ResourceIndex];
 

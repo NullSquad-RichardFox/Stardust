@@ -23,11 +23,13 @@ public:
 
 	void SendTradeRoute(FTradeRoute TradeRoute);
 
+	float GetPlayerMoney() { return Money; }
+
 private:
 	UFUNCTION()
-		void GetMoney();
+	void GetMoney();
 
 	TArray<FTradeRoute> TradeRoutes;
 	TArray<APlanet*> Planets;
-	float Money;
+	float Money = 10000.0f;
 };

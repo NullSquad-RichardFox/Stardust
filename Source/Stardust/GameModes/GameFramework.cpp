@@ -200,6 +200,22 @@ FString AGameFramework::GetDisplayTimeString()
 	return FString::FromInt(GameplayTime.X) + ". " + FString::FromInt(GameplayTime.Y) + ". " + FString::FromInt(GameplayTime.Z);
 }
 
+float AGameFramework::GetPlayerMoney()
+{
+	TArray<AActor*> Actors;
+	UGameplayStatics::GetAllActorsOfClass(GetWorld(), APlayerCorporation::StaticClass(), Actors);
+
+	if (Actors.IsValidIndex(0))
+	{
+		if (APlayerCorporation* Corp = Cast<APlayerCorporation>(Actors[0]))
+		{
+			return Corp->GetPlayerMoney();
+		}
+	}
+
+	return 0;
+}
+
 void AGameFramework::SetTimeSpeedModifier(float Value)
 {
 	TimeSpeedMultiplier = FMath::Clamp(Value, 0, 100.f);

@@ -68,24 +68,29 @@ class STARDUST_API UJobListData : public UObject
 	GENERATED_BODY()
 
 public:
-	void MakeJobData(EJobType JobType, int32 TotalJobs, int32 OccupiedJobs)
+	void MakeJobData(EJobType JobType, int32 TotalJobs, int32 OccupiedJobs, int32 BuildSlotIndex, AActor* OwningActor)
 	{
 		InJobType = JobType;
 		InTotalJobs = TotalJobs;
 		InOccupiedJobs = OccupiedJobs;
+		InBuildSlotIndex = BuildSlotIndex;
+		InOwningActor = OwningActor;
 	}
 
 	UFUNCTION(BlueprintCallable)
-	void GetJobData(EJobType& JobType, int32& TotalJobs, int32& OccupiedJobs)
+	void GetJobData(EJobType& JobType, int32& TotalJobs, int32& OccupiedJobs, int32& BuildSlotIndex, AActor*& OwningActor)
 	{
 		JobType = InJobType;
 		TotalJobs = InTotalJobs;
 		OccupiedJobs = InOccupiedJobs;
+		BuildSlotIndex = InBuildSlotIndex;
+		OwningActor = InOwningActor;
 	}
 
 private:
 	EJobType InJobType;
-	int32 InTotalJobs, InOccupiedJobs;
+	int32 InTotalJobs, InOccupiedJobs, InBuildSlotIndex;
+	AActor* InOwningActor;
 };
 
 UCLASS(BlueprintType)

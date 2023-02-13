@@ -21,15 +21,11 @@ public:
 	UPlanetMenu(const FObjectInitializer& ObjectInitializer);
 
 	void Preload(AGameActor* ParentActor);
-	void UpdateTradeRouteList();
-	void UpdateResourceList();
 
 	void AddQueueItem(UObject* Item);
 	void RemoveQueueItem(int32 Index);
 
 protected:
-	UFUNCTION()
-	void MonthlyUpdate();
 
 	virtual void NativeOnInitialized() override;
 
@@ -44,7 +40,18 @@ protected:
 
 private:
 	UFUNCTION()
+	void MonthlyUpdate();
+
+	UFUNCTION()
+	void TradeRouteUpdate();
+	UFUNCTION()
+	void BuildingUpdate(int32 BuildSlotIndex);
+
+	UFUNCTION()
 	void AddTradeRoute();
+
+	void UpdateTradeRouteList();
+	void UpdateResourceList();
 
 	TSubclassOf<UTradeRoutePicker> TradeRoutePickerClass;
 

@@ -12,6 +12,10 @@ class UCameraComponent;
 class UPlanetWidget;
 class APlayerCorporation;
 
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FBuildingFinishedSignature, int32, BuildSlotIndex);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE(FPopulationChangedSignature);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE(FTradeRouteChangedSignature);
+
 enum class EBuildingStatus
 {
 	Building,
@@ -46,6 +50,7 @@ class STARDUST_API APlanet : public AGameActor
 public:
 	APlanet();
 
+	// -- Building --
 	const UBuildRequest* BuildBuilding(int32 BuildSlotIndex, EBuildingType BuildingType);
 	const UBuildRequest* BuildDistrict(int32 BuildSlotIndex, EDistrictType DistrictType);
 	const UBuildRequest* UpgradeDistrict(int32 BuildSlotIndex);
@@ -55,6 +60,9 @@ public:
 	void ColonizePlanet(APlayerCorporation* Corporation);
 	void TradeRouteSent(const FTradeRoute& TradeRoute);
 	void TradeRouteFinished(const FTradeRoute& TradeRoute);
+
+	void FreeJob(int32 BuildSlotIndex, EJobType JobType);
+	void PopulateJob(int32 BuildSlotIndex, EJobType JobType);
 
 	const FBuildSlot& GetBuildSlot(int32 Index);
 	const TMap<EResourceType, float>& GetResourceStorage();
@@ -81,7 +89,14 @@ private:
 	void RecalculateProduction();
 	void RecalculateModifiers();
 	void OccupyJobs();
-	void UpdateWidgets(int32 BuildSlotIndex);
+
+public:
+	UPROPERTY()
+	FBuildingFinishedSignature BuildingFinishedEvent;
+	UPROPERTY()
+	FPopulationChangedSignature PopulationChangedEvent;
+	UPROPERTY()
+	FTradeRouteChangedSignature TradeRouteChangedEvent;
 
 protected:
 	UPROPERTY(EditAnywhere)
