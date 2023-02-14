@@ -25,9 +25,33 @@ void APlayerCorporation::Refund(float Cost)
 }
 
 
-void APlayerCorporation::AddPlanet(APlanet* Planet)
+int32 APlayerCorporation::AddPlanet(APlanet* Planet)
 {
-	Planets.Add(Planet);
+	return Planets.Add(Planet);
+}
+
+APlanet* APlayerCorporation::GetClosestPlanet(APlanet* OtherPlanet, float& OutDist)
+{
+	float Dist = MAX_FLT;
+	APlanet* ClosestPlanet = nullptr;
+
+	for (APlanet* Planet : Planets)
+	{
+		float NewDist = Planet->GetDistanceTo(OtherPlanet);
+		if (NewDist < Dist)
+		{
+			Dist = NewDist;
+			ClosestPlanet = Planet;
+		}
+	}
+
+	OutDist = ClosestPlanet ? Dist : 0;
+	return ClosestPlanet;
+}
+
+bool APlayerCorporation::IsPlanetOwned(APlanet* Planet)
+{
+	return Planets.Contains(Planet);
 }
 
 void APlayerCorporation::SendTradeRoute(FTradeRoute TradeRoute)

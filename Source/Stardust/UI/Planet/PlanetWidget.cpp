@@ -44,6 +44,21 @@ void UPlanetWidget::PreloadData(APlanet* ParentPlanet)
 	EnablePlayerMovement(false);
 	BindInput();
 
+	TArray<AActor*> PlayerCorp;
+	UGameplayStatics::GetAllActorsOfClass(GetWorld(), APlayerCorporation::StaticClass(), PlayerCorp);
+
+	if (PlayerCorp.IsValidIndex(0))
+	{
+		if (APlayerCorporation* PlayerCorporation = Cast< APlayerCorporation>(PlayerCorp[0]))
+		{
+			if (PlayerCorporation->IsPlanetOwned(OwningPlanet))
+			{
+				DisplayPlanetData();
+				return;
+			}
+		}
+	}
+
 	DisplayColonizeData();
 }
 
@@ -63,6 +78,8 @@ void UPlanetWidget::DisplayPlanetData()
 	PopulationBar->SetVisibility(ESlateVisibility::Visible);
 	StorageBar->SetVisibility(ESlateVisibility::Visible);
 	PlanetMenu->SetVisibility(ESlateVisibility::Visible);
+
+	DistrictMenu->SetVisibility(ESlateVisibility::Collapsed);
 
 	DistrictMenu->PreloadData(OwningPlanet);
 	PlanetMenu->Preload(OwningPlanet);
@@ -126,8 +143,8 @@ void UPlanetWidget::ColonizePlanet()
 			return;
 	}
 
-	OwningPlanet->ColonizePlanet(Cast<APlayerCorporation>(PlayerCorp[0]));
-	DisplayPlanetData();
+	if (OwningPlanet->ColonizePlanet(Cast<APlayerCorporation>(PlayerCorp[0])))
+		DisplayPlanetData();
 }
 
 void UPlanetWidget::FeatureInfoHovered()

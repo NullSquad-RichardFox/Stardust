@@ -4,6 +4,17 @@
 #include "CoreDataStructs.h"
 
 
+#define DistrictLogging 0
+
+#if DistrictLogging && UE_BUILD_DEVELOPMENT
+#define LOG(text, ...) UE_LOG(LogTemp, Warning, TEXT("[District][%i]: "##text), __LINE__, ##__VA_ARGS__)
+#define LOGINFO(text, ...) UE_LOG(LogTemp, Display, TEXT("[District][%i]: "##text), __LINE__, ##__VA_ARGS__)
+#define LOGERROR(text, ...) UE_LOG(LogTemp, Error, TEXT("[District][%i]: "##text), __LINE__, ##__VA_ARGS__)
+#else
+#define LOG(text, ...)
+#define LOGINFO(text, ...)
+#define LOGERROR(text, ...)
+#endif
 
 UStructDataLibrary::UStructDataLibrary()
 {
@@ -139,33 +150,27 @@ const FResourcePrice* UStructDataLibrary::GetData(EResourceType ResourceType)
 
 
 
-void FDistrict::AddDistrictProduction(FResourceMap& ResourceStorage) const
-{
-	// Maintains buildings
-	for (EBuildingType Building : Buildings)
-		CanBeMaintained(ResourceStorage, Building);
-	
 
-	// Disables jobs of disabled buildings
-	TMap<EJobType, int32> DisabledJobs;
-	for (int32 BuildingIndex : DisabledBuildings)
+void FDistrict::MaintainBuildings(FResourceMap& ResourceStorage) const
+{
+	DisabledJobs.Empty();
+
+	for (EBuildingType Building : Buildings)
 	{
-		for (const auto& [JobType, JobCount] : UStructDataLibrary::GetData(Buildings[BuildingIndex])->BuildingJobs)
+		bool bMaintainable = CanBeMaintained(ResourceStorage, Building);
+
+		if (!bMaintainable)
 		{
-			DisabledJobs.FindOrAdd(JobType) += JobCount;
+			for (const auto& [JobType, JobCount] : UStructDataLibrary::GetData(Building)->BuildingJobs)
+			{
+				DisabledJobs.FindOrAdd(JobType) += JobCount;
+			}
 		}
 	}
+}
 
-	for (const auto& [DisabledJobType, DisabledJobCount] : DisabledJobs)
-	{
-		const int32& OccupiedJobCount = OccupiedJobs[DisabledJobType];
-		const int32& DistrictJobCount = DistrictJobs[DisabledJobType];
-
-		DisabledJobs[DisabledJobType] = OccupiedJobCount - DistrictJobCount + DisabledJobCount;
-	}
-
-
-	// Jobs
+void FDistrict::MaintainJobs(FResourceMap& ResourceStorage, FResourceMap& ResourceProduction, FResourceMap& ResourceUpkeep) const
+{
 	for (const TPair<EJobType, int32>& Job : OccupiedJobs)
 	{
 		const EJobType JobType = Job.Key;
@@ -179,63 +184,44 @@ void FDistrict::AddDistrictProduction(FResourceMap& ResourceStorage) const
 		{
 			const float UpkModif = UpkeepModifiers.Contains(UpkResType) ? UpkeepModifiers[UpkResType] : 1;
 			ResourceStorage.FindOrAdd(UpkResType) -= UpkResAmount * UpkModif * MaintainableJobCount;
+			ResourceUpkeep.FindOrAdd(UpkResType) += UpkResAmount * UpkModif * MaintainableJobCount;
 		}
 
 		for (const auto& [ProdResType, ProdResAmount] : Data->ResourceProduction)
 		{
 			const float ProdModif = ProductionModifiers.Contains(ProdResType) ? ProductionModifiers[ProdResType] : 1;
-			ResourceStorage.FindOrAdd(ProdResType) += ProdResAmount * JobCount * ProdModif * MaintainableJobCount;
+			ResourceStorage.FindOrAdd(ProdResType) += ProdResAmount * ProdModif * MaintainableJobCount;
+			ResourceProduction.FindOrAdd(ProdResType) += ProdResAmount * ProdModif * MaintainableJobCount;
 		}
 	}
 }
 
-float FDistrict::GetTotalDistrictEnergy() const
+float FDistrict::GetDistrictEnergyProduction() const
 {
-	float TotalEnergy = EnergyProduction - EnergyUpkeep;
+	float TotalEnergy = EnergyProduction;
 
 	for (EBuildingType BuildingType : Buildings)
 	{
 		const FBuildingData* Data = UStructDataLibrary::GetData(BuildingType);
 
 		TotalEnergy += Data->EnergyProduction;
-		TotalEnergy -= Data->EnergyUpkeep;
 	}
 
 	return TotalEnergy;
 }
 
-FDistrict::FResourceMap FDistrict::GetDistrictProduction() const
+float FDistrict::GetDistrictEnergyConsumption() const
 {
-	FResourceMap JobProduction;
+	float TotalEnergy = EnergyUpkeep;
 
-	for (const TPair<EJobType, int32>& Job : OccupiedJobs)
-		for (const TPair<EResourceType, float>& Resource : UStructDataLibrary::GetData(Job.Key)->ResourceProduction)
-			JobProduction.FindOrAdd(Resource.Key) += Resource.Value * Job.Value;
+	for (EBuildingType BuildingType : Buildings)
+	{
+		const FBuildingData* Data = UStructDataLibrary::GetData(BuildingType);
 
-	for (const TPair<EResourceType, float>& Modifier : ProductionModifiers)
-		if (JobProduction.Contains(Modifier.Key))
-			JobProduction[Modifier.Key] *= Modifier.Value;
+		TotalEnergy += Data->EnergyUpkeep;
+	}
 
-	return JobProduction;
-}
-
-FDistrict::FResourceMap FDistrict::GetDistrictUpkeep() const
-{
-	FResourceMap JobUpkeep;
-
-	for (const EBuildingType& Building : Buildings)
-		for (const TPair<EResourceType, float>& BuildingUpkeep : UStructDataLibrary::GetData(Building)->ResourceUpkeep)
-			JobUpkeep.FindOrAdd(BuildingUpkeep.Key) += BuildingUpkeep.Value;
-
-	for (const TPair<EJobType, int32>& Job : OccupiedJobs)
-		for (const TPair<EResourceType, float>& Resource : UStructDataLibrary::GetData(Job.Key)->ResourceUpkeep)
-			JobUpkeep.FindOrAdd(Resource.Key) += Resource.Value * Job.Value;
-
-	for (const TPair<EResourceType, float>& Modifier : UpkeepModifiers)
-		if (JobUpkeep.Contains(Modifier.Key))
-			JobUpkeep[Modifier.Key] *= Modifier.Value;
-
-	return JobUpkeep;
+	return TotalEnergy;
 }
 
 FDistrict::FResourceMap FDistrict::AddUpProductionModifiers()
@@ -268,15 +254,9 @@ bool FDistrict::CanBeMaintained(FResourceMap& ResourceStorage, EBuildingType Bui
 	{
 		if (ResourceStorage.FindRef(ResType) < ResAmount)
 		{
-			DisabledBuildings.Add(Buildings.Find(Building));
 			ResourceStorage[ResType] -= ResAmount;
 			return false;
 		}
-	}
-
-	if (DisabledBuildings.Contains(Buildings.Find(Building)))
-	{
-		DisabledBuildings.Remove(Buildings.Find(Building));
 	}
 
 	return true;
@@ -335,17 +315,32 @@ EJobType FDistrict::GetDistrictDefaultJob(EDistrictType Type)
 	}
 }
 
-void FDistrict::PopulateJob(EJobType Job)
+bool FDistrict::PopulateJob(EJobType Job)
 {
 	if (OccupiedJobs.FindRef(Job) < DistrictJobs.FindRef(Job))
+	{
 		OccupiedJobs.FindOrAdd(Job)++;
+		return true;
+	}
 
+	return false;
 }
 
-void FDistrict::FreeJob(EJobType Job)
+bool FDistrict::FreeJob(EJobType Job)
 {
-	if (OccupiedJobs.Contains(Job))
-		OccupiedJobs[Job] = FMath::Clamp(OccupiedJobs[Job] - 1, 0, 10000);
+	if (OccupiedJobs.Contains(Job) && OccupiedJobs[Job] > 0)
+	{
+		OccupiedJobs[Job]--;
+
+		if (OccupiedJobs[Job] == 0)
+		{
+			OccupiedJobs.Remove(Job);
+		}
+
+		return true;
+	}
+
+	return false;
 }
 
 void FDistrict::AddBuilding(EBuildingType BuildingType)
@@ -420,6 +415,16 @@ int32 FDistrict::GetBuildingCount() const
 	return Buildings.Num();
 }
 
+const FDistrict::FResourceMap& FDistrict::GetResourceProduction() const
+{
+	return ResProduction;
+}
+
+const FDistrict::FResourceMap& FDistrict::GetResourceUpkeep() const
+{
+	return ResUpkeep;
+}
+
 void FDistrict::UpgradeDistrict(EDistrictType Type)
 {
 	DistrictTier++;
@@ -427,15 +432,15 @@ void FDistrict::UpgradeDistrict(EDistrictType Type)
 
 	if (const FDistrictData* DistrictData = UStructDataLibrary::GetData(DistrictType, DistrictTier))
 	{
-		EnergyProduction += DistrictData->EnergyProduction;
-		EnergyUpkeep += DistrictData->EnergyUpkeep;
+		EnergyProduction = DistrictData->EnergyProduction;
+		EnergyUpkeep = DistrictData->EnergyUpkeep;
 		BuildSlots += DistrictData->BuildSlots;
 
 		for (const TPair<EJobType, int32>& Job : DistrictData->DistrictJobs)
 		{
 			if (Job.Key == EJobType::DistrictDefault)
 			{
-				DistrictJobs.FindOrAdd(FDistrict::GetDistrictDefaultJob(DistrictType)) += Job.Value;
+				DistrictJobs.FindOrAdd(GetDistrictDefaultJob(DistrictType)) += Job.Value;
 			}
 			else
 			{
@@ -451,8 +456,8 @@ int32 FDistrict::DowngradeDistrict()
 
 	if (const FDistrictData* DistrictData = UStructDataLibrary::GetData(DistrictType, DistrictTier))
 	{
-		EnergyProduction -= DistrictData->EnergyProduction;
-		EnergyUpkeep -= DistrictData->EnergyUpkeep;
+		EnergyProduction = DistrictData->EnergyProduction;
+		EnergyUpkeep = DistrictData->EnergyUpkeep;
 		BuildSlots -= DistrictData->BuildSlots;
 
 		for (const TPair<EJobType, int32>& Job : DistrictData->DistrictJobs)
@@ -476,22 +481,23 @@ TOptional<EJobType> FDistrict::GetFreeJob() const
 {
 	for (const TPair<EJobType, int32>& Job : DistrictJobs)
 	{
+		LOGINFO("Searching for job")
 		if (OccupiedJobs.Contains(Job.Key))
 		{
+			LOGINFO("Key found")
 			if (OccupiedJobs[Job.Key] < DistrictJobs[Job.Key])
 			{
+				LOG("Returning key")
 				return Job.Key;
-			}
-			else
-			{
-				return {};
 			}
 		}
 		else
 		{
+			LOG("Returning key")
 			return Job.Key;
 		}
 	}
 
+	LOGERROR("Nothing")
 	return {};
 }

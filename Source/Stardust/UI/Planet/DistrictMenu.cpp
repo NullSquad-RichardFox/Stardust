@@ -345,10 +345,10 @@ void UDistrictMenu::PopulateResourceList(const FDistrict& District)
 {
 	ResourceFlowList->ClearListItems();
 
-	TMap<EResourceType, float> BuildSlotResources = District.GetDistrictProduction();
+	TMap<EResourceType, float> BuildSlotResources = District.GetResourceProduction();
 
 	//Sums the resource generation 
-	for (const auto& [ResourceType, ResourceAmount] : District.GetDistrictUpkeep())
+	for (const auto& [ResourceType, ResourceAmount] : District.GetResourceUpkeep())
 		BuildSlotResources.FindOrAdd(ResourceType) -= ResourceAmount;
 
 	//Updates planet list

@@ -21,6 +21,9 @@ public:
 
 	void Preload(AActor* ParentActor, int32 InBuildSlotIndex);
 
+protected:
+	virtual bool NativeOnDrop(const FGeometry& InGeometry, const FDragDropEvent& InDragDropEvent, UDragDropOperation* InOperation) override;
+
 private:
 	UFUNCTION()
 	void ClickEvent();

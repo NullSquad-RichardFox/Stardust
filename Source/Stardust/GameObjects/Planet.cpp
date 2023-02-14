@@ -10,6 +10,11 @@
 #include "Stardust/Libraries/ListDataLibrary.h"
 
 
+#if UE_BUILD_DEVELOPMENT
+#define LOG(text, ...) UE_LOG(LogTemp, Warning, TEXT("[%s][%i]: "##text), *GetName(), __LINE__, ##__VA_ARGS__)
+#else
+#define LOG(text, ...)
+#endif
 
 APlanet::APlanet()
 {
@@ -35,7 +40,16 @@ void APlanet::OnDayUpdate()
 	if (BuildQueue.Num())
 		HandleBuilding();
 
-	PartialPopulation += PopulationGrowth / 30;
+
+	if (PlanetaryModifiers.Contains(EPlanetModifier::Starvation) && Population != 1)
+	{
+		PartialPopulation -= PopulationGrowth / 30 * 0.2f;
+	}
+	else
+	{
+		PartialPopulation += PopulationGrowth / 30;
+	}
+
 	if (PartialPopulation >= PopulationGrowthThreshold)
 	{
 		Population++;
@@ -45,6 +59,23 @@ void APlanet::OnDayUpdate()
 
 		OccupyJobs();
 		PopulationChangedEvent.Broadcast();
+	}
+	else if (PartialPopulation < 0)
+	{
+		Population--;
+		PartialPopulation += PopulationGrowthThreshold;
+
+		for (FBuildSlot& BuildSlot : BuildSlots)
+		{
+			for (const TPair<EJobType, int32>& Job : BuildSlot.District.GetOccupiedJobs())
+			{
+				if (BuildSlot.District.FreeJob(Job.Key))
+				{
+					PopulationChangedEvent.Broadcast();
+					return;
+				}
+			}
+		}
 	}
 }
 
@@ -226,12 +257,18 @@ void APlanet::GeneratePlanetaryFeature(int32 FeatureIndex)
 	} while (bGenerated && Feature->bMultiple);
 }
 
-void APlanet::ColonizePlanet(APlayerCorporation* Corporation)
+bool APlanet::ColonizePlanet(APlayerCorporation* Corporation)
 {
-	if (!Corporation) return;
+	if (!Corporation) return false;
+
+	float Dist;
 
 	PlanetCorporation = Corporation;
-	PlanetCorporation.GetValue()->AddPlanet(this);
+	PlanetCorporation.GetValue()->GetClosestPlanet(this, Dist);
+
+	if (!PlanetCorporation.GetValue()->Purchase(FMath::FloorToFloat(5 * Dist))) return false;
+
+	int32 Index = PlanetCorporation.GetValue()->AddPlanet(this);
 
 	if (AGameFramework* GameMode = Cast<AGameFramework>(GetWorld()->GetAuthGameMode()))
 	{
@@ -243,20 +280,26 @@ void APlanet::ColonizePlanet(APlayerCorporation* Corporation)
 		PopulationGrowthThreshold = GameMode->PopulationGrowthThreshold;
 	}
 
-	Population = 22;
-	UnemployedPopulation = Population;
+	if (Index == 0)
+	{
+		Population = 22;
+		UnemployedPopulation = Population;
 
-	// PlanetAdmin - Lvl 2
-	BuildSlots[0].District.UpgradeDistrict(EDistrictType::DistrictAdministration);
-	BuildSlots[0].District.UpgradeDistrict(EDistrictType::DistrictAdministration);
+		// PlanetAdmin - Lvl 2
+		BuildSlots[0].District.UpgradeDistrict(EDistrictType::DistrictAdministration);
+		BuildSlots[0].District.UpgradeDistrict(EDistrictType::DistrictAdministration);
 
-	// Ore Collection - Lvl 1
-	BuildSlots[1].District.UpgradeDistrict(EDistrictType::OreCollection);
+		// Ore Collection - Lvl 1
+		BuildSlots[1].District.UpgradeDistrict(EDistrictType::OreCollection);
 
-	// Power Production - Lvl 1
-	BuildSlots[2].District.UpgradeDistrict(EDistrictType::PowerProduction);
+		// Power Production - Lvl 1
+		BuildSlots[2].District.UpgradeDistrict(EDistrictType::PowerProduction);
 
-	OccupyJobs();
+		OccupyJobs();
+		RecalculateEnergy();
+	}
+
+	return true;
 }
 
 void APlanet::TradeRouteSent(const FTradeRoute& TradeRoute)
@@ -277,25 +320,42 @@ void APlanet::TradeRouteFinished(const FTradeRoute& TradeRoute)
 	{
 		for (const auto& [Type, Amount] : TradeRoute.Resources)
 		{
-			UE_LOG(LogTemp, Warning, TEXT("TR finished with type: %s and count: %f"), *ResEnum->GetNameStringByValue((int32)Type), Amount);
+			LOG("TR finished with type: %s and count: %f", *ResEnum->GetNameStringByValue((int32)Type), Amount);
 		}
 	}
 
 	TradeRouteChangedEvent.Broadcast();
 }
 
-void APlanet::FreeJob(int32 BuildSlotIndex, EJobType JobType)
+bool APlanet::FreeJob(int32 BuildSlotIndex, EJobType JobType)
 {
-	if (!BuildSlots.IsValidIndex(BuildSlotIndex)) return;
+	if (!BuildSlots.IsValidIndex(BuildSlotIndex)) return false;
 
 	BuildSlots[BuildSlotIndex].District.FreeJob(JobType);
+	return true;
 }
 
-void APlanet::PopulateJob(int32 BuildSlotIndex, EJobType JobType)
+bool APlanet::PopulateJob(int32 BuildSlotIndex, EJobType JobType)
 {
-	if (!BuildSlots.IsValidIndex(BuildSlotIndex)) return;
+	if (!BuildSlots.IsValidIndex(BuildSlotIndex)) return false;
 
 	BuildSlots[BuildSlotIndex].District.PopulateJob(JobType);
+	return true;
+}
+
+bool APlanet::PopulateJob(int32 BuildSlotIndex)
+{
+	if (!BuildSlots.IsValidIndex(BuildSlotIndex)) return false;
+
+
+	TOptional<EJobType> JobType = BuildSlots[BuildSlotIndex].District.GetFreeJob();
+	if (JobType.IsSet())
+	{
+		BuildSlots[BuildSlotIndex].District.PopulateJob(JobType.GetValue());
+		return true;
+	}
+
+	return false;
 }
 
 
@@ -445,7 +505,7 @@ void APlanet::HandleBuilding()
 		Request->BuildTime--;
 		if (Request->BuildTime > 0) continue;
 
-
+		// Finished 
 		if (Request->Type.IsType<EDistrictType>())
 		{
 			EDistrictType Type = Request->Type.Get<EDistrictType>();
@@ -458,13 +518,20 @@ void APlanet::HandleBuilding()
 			BuildSlots[Request->BuildSlotIndex].District.AddBuilding(Type);
 		}
 
-		BuildingFinishedEvent.Broadcast(Request->BuildSlotIndex);
 		OccupyJobs();
+		RecalculateEnergy();
+
+		BuildingFinishedEvent.Broadcast(Request->BuildSlotIndex);
 
 		Request->Status = EBuildingStatus::Completed;
 		BuildQueue.RemoveAt(i, 1, true);
 	}
 }
+
+
+
+
+
 
 void APlanet::RecalculateModifiers()
 {
@@ -486,28 +553,56 @@ void APlanet::RecalculateProduction()
 	ResourceProduction.Empty();
 	ResourceUpkeep.Empty();
 
+	for (const FBuildSlot& BuildSlot : BuildSlots)
+	{
+		const FDistrict& District = BuildSlot.District;
+
+		EnergyProduction += District.GetDistrictEnergyProduction();
+		EnergyConsumption += District.GetDistrictEnergyConsumption();
+
+		District.MaintainBuildings(ResourceStorage);
+		District.MaintainJobs(ResourceStorage, ResourceProduction, ResourceUpkeep);
+	}
+
+	ResourceStorage.FindOrAdd(EResourceType::Food) -= Population * PopulationFoodConsumption;
+	ResourceUpkeep.FindOrAdd(EResourceType::Food) += Population * PopulationFoodConsumption;
+
+	if (ResourceStorage[EResourceType::Food] < 0)
+	{
+		PlanetaryModifiers.Add(EPlanetModifier::Starvation);
+		RecalculateModifiers();
+	}
+}
+
+void APlanet::RecalculateEnergy()
+{
+	LOG("Energy recalculated")
+
+	EnergyFinal = 0;
 	EnergyProduction = 0;
 	EnergyConsumption = 0;
 
-	for (const auto& [District, Features] : BuildSlots)
+	for (const FBuildSlot& BuildSlot : BuildSlots)
 	{
-		EnergyFinal += District.GetTotalDistrictEnergy();
-		District.AddDistrictProduction(ResourceStorage);
+		const FDistrict& District = BuildSlot.District;
 
-		for (const auto& [ResType, ResAmount] : District.GetDistrictProduction())
-		{
-			ResourceProduction.FindOrAdd(ResType) += ResAmount;
-		}
-		for (const auto& [ResType, ResAmount] : District.GetDistrictUpkeep())
-		{
-			ResourceUpkeep.FindOrAdd(ResType) += ResAmount;
-		}
+		EnergyProduction += District.GetDistrictEnergyProduction();
+		EnergyConsumption += District.GetDistrictEnergyConsumption();
+	}
+
+	EnergyFinal = EnergyProduction - EnergyConsumption;
+	if (EnergyFinal < 0)
+	{
+		PlanetaryModifiers.Add(EPlanetModifier::EnergyDeficit);
+		RecalculateModifiers();
 	}
 }
 
 void APlanet::OccupyJobs()
 {
-	for (int32 i = 0; i < UnemployedPopulation; i++)
+	int32 Repeat = UnemployedPopulation;
+
+	do
 	{
 		bool bJobFound = false;
 		int32 Index = 0;
@@ -526,8 +621,13 @@ void APlanet::OccupyJobs()
 			}
 
 		} while (!bJobFound && Index < BuildSlots.Num());
-	}
+
+		Repeat--;
+	} while (Repeat > 0);
 }
+
+
+
 
 
 

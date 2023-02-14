@@ -51,8 +51,6 @@ void UJobListItem::NativeOnDragDetected(const FGeometry& InGeometry, const FPoin
 		ItemOperation->DefaultDragVisual = Widget;
 		ItemOperation->OriginPtr = this;
 
-		UE_LOG(LogTemp, Warning, TEXT("Drag detected"))
-
 		OutOperation = ItemOperation;
 	}
 }
@@ -68,18 +66,17 @@ bool UJobListItem::NativeOnDrop(const FGeometry& InGeometry, const FDragDropEven
 
 			if (APlanet* OwningPlanet = Cast<APlanet>(OwningActor))
 			{
-				OwningPlanet->FreeJob(BuildSlotIndex, OtherJobItem->JobType);
-				OwningPlanet->PopulateJob(BuildSlotIndex, JobType);
+				if (OwningPlanet->PopulateJob(BuildSlotIndex, JobType))
+				{
+					OwningPlanet->FreeJob(BuildSlotIndex, OtherJobItem->JobType);
+				}
 			}
 
 			UpdateOccupiedJobs(1);
 			OtherJobItem->UpdateOccupiedJobs(-1);
 
-			UE_LOG(LogTemp, Warning, TEXT("Updated"))
-
 			return true;
 		}
-		UE_LOG(LogTemp, Warning, TEXT("Same type"))
 	}
 
 	UWidgetBlueprintLibrary::CancelDragDrop();

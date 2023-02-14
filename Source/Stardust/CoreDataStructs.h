@@ -106,7 +106,8 @@ enum class EDistrictModifier : uint8
 UENUM()
 enum class EPlanetModifier : uint8
 {
-	Mod						UMETA(DisplayName = "")
+	Starvation				UMETA(DisplayName = ""),
+	EnergyDeficit			UMETA(DisplayName = "")
 };
 
 
@@ -313,14 +314,15 @@ public:
 
 	typedef TMap<EResourceType, float> FResourceMap;
 
-	void AddDistrictProduction(FResourceMap& ResourceStorage) const;
 
-	float GetTotalDistrictEnergy() const;
-	FResourceMap GetDistrictProduction() const;
-	FResourceMap GetDistrictUpkeep() const;
+	float GetDistrictEnergyProduction() const;
+	float GetDistrictEnergyConsumption() const;
 
-	void PopulateJob(EJobType Job);
-	void FreeJob(EJobType Job);
+	void MaintainBuildings(FResourceMap& ResourceStorage) const;
+	void MaintainJobs(FResourceMap& ResourceStorage, FResourceMap& ResourceProduction, FResourceMap& ResourceUpkeep) const;
+
+	bool PopulateJob(EJobType Job);
+	bool FreeJob(EJobType Job);
 	TOptional<EJobType> GetFreeJob() const;
 
 	void AddBuilding(EBuildingType BuildingType);
@@ -333,6 +335,8 @@ public:
 	const TArray<EDistrictModifier>& GetModifiers() const;
 	const TMap<EJobType, int32>& GetJobs() const;
 	const TMap<EJobType, int32>& GetOccupiedJobs() const;
+	const FResourceMap& GetResourceProduction() const;
+	const FResourceMap& GetResourceUpkeep() const;
 
 	bool IsValidBuildingIndex(int32 Index) const;
 	int32 GetBuildingCount() const;
@@ -377,7 +381,10 @@ private:
 	FResourceMap ProductionModifiers;
 	FResourceMap UpkeepModifiers;
 
-	mutable TArray<int32> DisabledBuildings;
+	FResourceMap ResProduction;
+	FResourceMap ResUpkeep;
+
+	mutable TMap<EJobType, int32> DisabledJobs;
 };
 
 USTRUCT()

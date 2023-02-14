@@ -57,12 +57,13 @@ public:
 	int32 DowngradeDistrict(int32 BuildSlotIndex);
 	void CancelBuildingProcess(int32 RequestIndex);
 
-	void ColonizePlanet(APlayerCorporation* Corporation);
+	bool ColonizePlanet(APlayerCorporation* Corporation);
 	void TradeRouteSent(const FTradeRoute& TradeRoute);
 	void TradeRouteFinished(const FTradeRoute& TradeRoute);
 
-	void FreeJob(int32 BuildSlotIndex, EJobType JobType);
-	void PopulateJob(int32 BuildSlotIndex, EJobType JobType);
+	bool FreeJob(int32 BuildSlotIndex, EJobType JobType);
+	bool PopulateJob(int32 BuildSlotIndex, EJobType JobType);
+	bool PopulateJob(int32 BuildSlotIndex);
 
 	const FBuildSlot& GetBuildSlot(int32 Index);
 	const TMap<EResourceType, float>& GetResourceStorage();
@@ -87,6 +88,7 @@ private:
 
 	void HandleBuilding();
 	void RecalculateProduction();
+	void RecalculateEnergy();
 	void RecalculateModifiers();
 	void OccupyJobs();
 
@@ -160,4 +162,5 @@ private:
 
 	float PartialPopulation;
 	float UnemployedPopulation;
+	float PopulationFoodConsumption = 1.5f;
 };

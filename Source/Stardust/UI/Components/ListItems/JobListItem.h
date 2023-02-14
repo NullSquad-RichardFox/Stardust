@@ -45,9 +45,9 @@ protected:
 public:
 	EJobType JobType;
 	int32 OccupiedJobs;
+	int32 BuildSlotIndex;
 
 private:
-	int32 BuildSlotIndex;
 	AActor* OwningActor;
 };
 

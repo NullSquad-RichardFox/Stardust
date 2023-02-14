@@ -19,7 +19,9 @@ public:
 	bool Purchase(float Cost);
 	void Refund(float Cost);
 
-	void AddPlanet(APlanet* Planet);
+	int32 AddPlanet(APlanet* Planet);
+	APlanet* GetClosestPlanet(APlanet* OtherPlanet, float& OutDist);
+	bool IsPlanetOwned(APlanet* Planet);
 
 	void SendTradeRoute(FTradeRoute TradeRoute);
 
