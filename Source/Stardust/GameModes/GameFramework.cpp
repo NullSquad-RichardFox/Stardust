@@ -8,6 +8,7 @@
 #include "Stardust/GameObjects/GameActor.h"
 #include "Stardust/GameObjects/Connection.h"
 #include "Stardust/GameObjects/Planet.h"
+#include "Stardust/GameObjects/TradeHub.h"
 #include "Blueprint/UserWidget.h"
 #include "Stardust/FindPath.h"
 #include "Kismet/GameplayStatics.h"
@@ -99,7 +100,7 @@ void AGameFramework::GenerateMap(int32 PlanetCount)
 	for (int32 i = 1; i < Level + 1; i++)
 		GenerateLayer<APlanet>(PlanetClass, i, i * 6, HexagonRadius);
 
-	//GenerateLayer<ATradePort>(ATradePort::StaticClass(), Level + 2, 4, HexagonRadius, false);
+	GenerateLayer<ATradeHub>(ATradeHub::StaticClass(), Level + 2, 4, HexagonRadius, false);
 
 	GenerateConnections(MaxPlanetConnectionLength, MaxPossibleConnections);
 }
