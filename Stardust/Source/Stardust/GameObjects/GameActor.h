@@ -8,8 +8,10 @@
 
 
 class AConnection;
+class ACorporation;
 class UInputMappingContext;
 class UInputAction;
+class UTradeRoutePicker;
 
 UCLASS(Abstract)
 class STARDUST_API AGameActor : public AActor
@@ -20,7 +22,8 @@ public:
 	AGameActor();
 
 	bool IsConnectedTo(AGameActor* OtherActor, int32& OutConnectionIndex);
-	void SetFindRouteActive(bool Value);
+	void SetFindRouteActive(UTradeRoutePicker* TradeRoutePicker);
+	ACorporation* GetCorporation();
 
 	UPROPERTY(VisibleAnywhere)
 	TArray<TObjectPtr<AConnection>> Connections;
@@ -47,6 +50,8 @@ protected:
 	UPROPERTY(EditAnywhere)
 	UStaticMeshComponent* ActorMeshComponent;
 
+	TOptional<ACorporation*> Corporation;
+
 private:
 	UPROPERTY()
 	UInputMappingContext* GameActorMappingContext;
@@ -55,5 +60,5 @@ private:
 
 	bool bMouseOver;
 
-	bool bFindRouteActive;
+	TOptional<UTradeRoutePicker*> TradeRouteUI;
 };

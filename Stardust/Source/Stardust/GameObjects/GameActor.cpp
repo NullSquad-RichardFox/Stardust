@@ -4,6 +4,7 @@
 #include "GameActor.h"
 #include "Stardust/GameModes/GameFramework.h"
 #include "Stardust/Libraries/InputFunctionLibrary.h"
+#include "Stardust/UI/TradeRoutePicker.h"
 
 
 
@@ -36,9 +37,14 @@ bool AGameActor::IsConnectedTo(AGameActor* OtherActor, int32& OutConnectionIndex
 	return false;
 }
 
-void AGameActor::SetFindRouteActive(bool Value)
+void AGameActor::SetFindRouteActive(UTradeRoutePicker* TradeRoutePicker)
 {
-	bFindRouteActive = Value;
+	TradeRouteUI = TradeRoutePicker;
+}
+
+ACorporation* AGameActor::GetCorporation()
+{
+	return Corporation.Get(nullptr);
 }
 
 void AGameActor::BeginPlay()
@@ -82,14 +88,11 @@ void AGameActor::OnLeftMouseClick()
 		OnClicked();
 }
 
-void AGameActor::OnClicked() 
+void AGameActor::OnClicked()
 {
-	if (bFindRouteActive)
+	if (UTradeRoutePicker* TradeRoutePicker = Cast<UTradeRoutePicker>(TradeRouteUI.Get(nullptr)))
 	{
-		if (AGameFramework* GameMode = Cast<AGameFramework>(GetWorld()->GetAuthGameMode()))
-		{
-			GameMode->GetPathfinder().ActorClicked(this);
-		}
+		TradeRoutePicker->ActorClicked(this);
 	}
 }
 

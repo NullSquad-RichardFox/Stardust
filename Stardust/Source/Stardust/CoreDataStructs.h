@@ -10,8 +10,8 @@
 class AConnection;
 class AGameActor;
 
-UENUM()
-enum class EResourceType
+UENUM(BlueprintType)
+enum class EResourceType : uint8
 {
 	Oxygen					UMETA(DisplayName = "Oxygen"),
 	Water					UMETA(DisplayName = "Water"),
@@ -418,6 +418,7 @@ struct FTradeRoute
 	float FuelCosts;
 	float DangerLevel;
 	TMap<EResourceType, float> Resources;
+	float TradedCredits;
 
 	friend bool operator==(const FTradeRoute& RouteA, const FTradeRoute& RouteB)
 	{

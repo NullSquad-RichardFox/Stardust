@@ -10,6 +10,7 @@
 class AGameActor;
 class AConnection;
 class AGameFramework;
+class UTradeRoutePicker;
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FRouteUpdateEventSignature, float, Length, float, DangerLevel);
 
@@ -146,7 +147,7 @@ public:
 		:GameModePtr(GameModePtr) {}
 
 	void ActorClicked(AGameActor* Actor);
-	void SetStartingActor(AGameActor* Actor);
+	void SetStartingActor(AGameActor* Actor, UTradeRoutePicker* TradeRouteUI);
 
 	void CleanUp();
 
@@ -159,7 +160,7 @@ private:
 	void CreateRoute();
 	void ResetConnectionSelection();
 
-	void ToggleActorClickeEvent(bool Toggle);
+	void ToggleActorClickeEvent(UTradeRoutePicker* TradeRouteUI);
 
 	TArray<AGameActor*> Nodes;
 	AGameFramework* GameModePtr;

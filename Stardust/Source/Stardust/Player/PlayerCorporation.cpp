@@ -60,6 +60,35 @@ void APlayerCorporation::SendTradeRoute(FTradeRoute TradeRoute)
 	APlanet* Origin = Cast<APlanet>(TradeRoute.Origin);
 	if (!GameMode || !Origin) return;
 
+	ACorporation* DestinationCorp = TradeRoute.Destination->GetCorporation();
+
+
+	if (DestinationCorp == this)
+	{
+		// Res exchange
+	}
+	else if (AAICorporation* AICorp = Cast<AAICorporation>(DestinationCorp))
+	{
+		// AI pays
+		// AI gets resources
+
+
+		for (const auto& [ResType, ResAmount] : TradeRoute.Resources)
+		{
+			TradeRoute.TradedCredits += GameMode->GetResourcePrice(ResType) * ResAmount;
+		}
+	}
+	else if (ANation* Nation = Cast<ANation>(DestinationCorp))
+	{
+		// Nation gets resources
+
+
+		for (const auto& [ResType, ResAmount] : TradeRoute.Resources)
+		{
+			TradeRoute.TradedCredits += GameMode->GetResourcePrice(ResType) * ResAmount;
+		}
+	}
+
 	// Sets timer for payment
 	const FGameTimerData* Data = GameMode->SetTimer(this, TEXT("GetMoney"), TradeRoute.Rate);
 
@@ -74,26 +103,9 @@ void APlayerCorporation::SendTradeRoute(FTradeRoute TradeRoute)
 
 void APlayerCorporation::GetMoney()
 {
-	float TotalValue = 0.f;
-
-	for (const auto& [Type, Amount] : TradeRoutes[0].Resources)
-	{
-		if (const FResourcePrice* Price = UStructDataLibrary::GetData(Type))
-		{
-			TotalValue += Price->Price * Amount;
-		}
-	}
-		
-
-
-	// Payment
-
-	Money += TotalValue;
-
-	UE_LOG(LogTemp, Warning, TEXT("Money: %f"), Money)
-
-	// Syncs planet data and updates widgets
 	const FTradeRoute& TradeRoute = TradeRoutes[0];
+	Money += TradeRoute.TradedCredits;
+
 	if (APlanet* Origin = Cast<APlanet>(TradeRoute.Origin))
 	{
 		Origin->TradeRouteFinished(TradeRoute);
@@ -101,4 +113,6 @@ void APlayerCorporation::GetMoney()
 
 	// Removes trade route info
 	TradeRoutes.RemoveAt(0, 1, true);
+
+	UE_LOG(LogTemp, Warning, TEXT("Money: %f"), Money)
 }

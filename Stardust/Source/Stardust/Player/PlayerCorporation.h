@@ -11,7 +11,32 @@ class APlanet;
 class AGameActor;
 
 UCLASS()
-class STARDUST_API APlayerCorporation : public AActor
+class STARDUST_API ACorporation : public AActor
+{
+	GENERATED_BODY()
+
+
+};
+
+UCLASS()
+class STARDUST_API AAICorporation : public AActor
+{
+	GENERATED_BODY()
+
+
+};
+
+UCLASS()
+class STARDUST_API ANation : public AActor
+{
+	GENERATED_BODY()
+
+public:
+
+};
+
+UCLASS()
+class STARDUST_API APlayerCorporation : public ACorporation
 {
 	GENERATED_BODY()
 	
@@ -35,3 +60,6 @@ private:
 	TArray<APlanet*> Planets;
 	float Money = 10000.0f;
 };
+
+
+// trade route ui update

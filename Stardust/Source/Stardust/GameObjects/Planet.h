@@ -57,7 +57,7 @@ public:
 	int32 DowngradeDistrict(int32 BuildSlotIndex);
 	void CancelBuildingProcess(int32 RequestIndex);
 
-	bool ColonizePlanet(APlayerCorporation* Corporation);
+	bool ColonizePlanet(APlayerCorporation* InCorporation);
 	void TradeRouteSent(const FTradeRoute& TradeRoute);
 	void TradeRouteFinished(const FTradeRoute& TradeRoute);
 
@@ -111,7 +111,6 @@ protected:
 private:
 	friend UPlanetWidget;
 
-	TOptional<APlayerCorporation*> PlanetCorporation;
 	UPROPERTY(EditAnywhere, meta = (AllowPrivateAccess = true))
 	TSubclassOf<UPlanetWidget> PlanetWidgetClass;
 

@@ -312,14 +312,14 @@ void UPathfinder::ActorClicked(AGameActor* Actor)
 	}
 }
 
-void UPathfinder::SetStartingActor(AGameActor* Actor)
+void UPathfinder::SetStartingActor(AGameActor* Actor, UTradeRoutePicker* TradeRouteUI)
 {
 	if (!GameModePtr) return;
 
 	Nodes.Empty();
 	Nodes.Add(Actor);
 
-	ToggleActorClickeEvent(true);
+	ToggleActorClickeEvent(TradeRouteUI);
 
 	PathfinderEngine.SetGameModePtr(GameModePtr);
 	InteractionStatus = FindingDestination;
@@ -327,7 +327,7 @@ void UPathfinder::SetStartingActor(AGameActor* Actor)
 
 void UPathfinder::CleanUp()
 {
-	ToggleActorClickeEvent(false);
+	ToggleActorClickeEvent(nullptr);
 	ResetConnectionSelection();
 }
 
@@ -341,13 +341,13 @@ void UPathfinder::GetRouteActors(TArray<AGameActor*>& Actors)
 	PathfinderEngine.GetGameActors(Actors);
 }
 
-void UPathfinder::ToggleActorClickeEvent(bool Toggle)
+void UPathfinder::ToggleActorClickeEvent(UTradeRoutePicker* TradeRouteUI)
 {
 	if (!GameModePtr) return;
 
 	for (int32 i = 0; i < GameModePtr->GetGameActorNum(); i++)
 	{
-		GameModePtr->GetGameActorRef(i)->SetFindRouteActive(Toggle);
+		GameModePtr->GetGameActorRef(i)->SetFindRouteActive(TradeRouteUI);
 	}
 }
 

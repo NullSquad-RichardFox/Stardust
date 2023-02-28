@@ -17,18 +17,35 @@
 #if LOG_LEVEL_MARKET == 0
 #define LOG_INFO(text, ...) 
 #define LOG(text, ...) 
-#define LOG_ERROR(text, ...) UE_LOG(LogTemp, Error, TEXT("[%s][%i]: "##text), *GetName(), __LINE__, ##__VA_ARGS__)
+#define LOG_ERROR(text, ...)
 #elif LOG_LEVEL_MARKET == 1
 #define LOG_INFO(text, ...) 
-#define LOG(text, ...) UE_LOG(LogTemp, Warning, TEXT("[%s][%i]: "##text), *GetName(), __LINE__, ##__VA_ARGS__)
-#define LOG_ERROR(text, ...) UE_LOG(LogTemp, Error, TEXT("[%s][%i]: "##text), *GetName(), __LINE__, ##__VA_ARGS__)
+#define LOG(text, ...) 
+#define LOG_ERROR(text, ...) UE_LOG(LogTemp, Error, TEXT("[%i]: "##text), __LINE__, ##__VA_ARGS__)
 #elif LOG_LEVEL_MARKET == 2
+#define LOG_INFO(text, ...) 
+#define LOG(text, ...) UE_LOG(LogTemp, Warning, TEXT("[%i]: "##text), __LINE__, ##__VA_ARGS__)
+#define LOG_ERROR(text, ...) UE_LOG(LogTemp, Error, TEXT("[%i]: "##text), , __LINE__, ##__VA_ARGS__)
+#elif LOG_LEVEL_MARKET == 3
 #define LOG_INFO(text, ...) UE_LOG(LogTemp, Display, TEXT("[%i]: "##text), __LINE__, ##__VA_ARGS__)
-#define LOG(text, ...) UE_LOG(LogTemp, Warning, TEXT("[%s][%i]: "##text), *GetName(), __LINE__, ##__VA_ARGS__)
-#define LOG_ERROR(text, ...) UE_LOG(LogTemp, Error, TEXT("[%s][%i]: "##text), *GetName(), __LINE__, ##__VA_ARGS__)
+#define LOG(text, ...) UE_LOG(LogTemp, Warning, TEXT("[%i]: "##text), __LINE__, ##__VA_ARGS__)
+#define LOG_ERROR(text, ...) UE_LOG(LogTemp, Error, TEXT("[%i]: "##text), __LINE__, ##__VA_ARGS__)
 #endif
 
+#if LOG_LEVEL_MARKET == 0
+#define IFLOG(con, text, ...) 
+#define IFLOG_INFO(con, text, ...) 
+#else
+#define IFLOG(con, text, ...) if (con) \
+{\
+	LOG(text, ##__VA_ARGS__)	\
+}
 
+#define IFLOG_INFO(con, text, ...) if (con) \
+{\
+	LOG_INFO(text, ##__VA_ARGS__)	\
+}
+#endif
 
 
 class APlanet;
@@ -74,183 +91,111 @@ struct FWienerProcess
 
 public:
 	FWienerProcess()
-		:ControllerDemand(0.f), ControllerSupply(0.f), WorldDemand(0.f), WorldSupply(0.f), Change(0.f), Price(0.f), OriginalPrice(0.0), CorrelatedProcesses({}) {}
+		:ControllerDemand(0.f), ControllerSupply(0.f), WorldDemand(0.f), WorldSupply(0.f), Price(0.f), OriginalPrice(0.f), Complexity(0.f) {}
 
-	FWienerProcess(float WorldDemand, float WorldSupply, float Price, EResourceType ResourceType)
-		:ControllerDemand(0.f), ControllerSupply(0.f), WorldDemand(WorldDemand), WorldSupply(WorldSupply), Change(0.f), Price(Price), OriginalPrice(Price), ResourceType(ResourceType), CorrelatedProcesses({}) {}
+	FWienerProcess(double WorldDemand, double WorldSupply, float Price, EResourceType ResourceType, float Complexity)
+		:ControllerDemand(0.f), ControllerSupply(0.f), WorldDemand(WorldDemand), WorldSupply(WorldSupply), OriginalWorldDemand(WorldDemand), OriginalWorldSupply(WorldSupply), ResourceType(ResourceType), Price(Price), OriginalPrice(Price), Complexity(Complexity) {}
 
-	void UpdatePrice()
+	void UpdatePrice(FVector GameDate)
 	{
-		float Demand = ControllerDemand + WorldDemand;
-		float Supply = WorldSupply + ControllerSupply;
-		float Mean = (Demand - Supply) * SupplyDemandMultiplier + Inflation * InflationImpactMultiplier;
+		IFLOG_INFO(ResourceType == EResourceType::Ore, "Ore price: %f", (float)Price);
+		IFLOG_INFO(ResourceType == EResourceType::Ore, "Ore mean: %f", (float)Mean);
 
-		if (ResourceType == EResourceType::Ore)
-			LOG_INFO("Mean: [%f], Price: [%f], S: [%f] D: [%f]", Mean, Price, Supply, Demand)
+		float Mean = (WorldDemand - WorldSupply) * SupplyDemandMeanWeight + (ControllerDemand - ControllerSupply) * PlayerSupplyDemandWeight;
+		Price *= (GaussianRandom(Mean, 0.25) * PriceChangeMultiplier) + 1;
 
-		Change = GaussianRandom(Mean, 1 - Volatility) * PriceChangeMultiplier;
-		Price += Change;
+		IFLOG(Price < OriginalPrice * 0.35f, "Price is too low - %f", Price)
+		IFLOG(Mean > 1.1 || Mean < -1.1, "Mean is out of bounds - %f", Mean)
+		
+		WorldDemand = OriginalWorldDemand;
+		WorldSupply = OriginalWorldSupply;
+
+		AddNewSupplyDemand();
+		IFLOG_INFO(ResourceType == EResourceType::Ore, "NEW Supply: %f, Demand: %f", WorldSupply, WorldDemand);
+
+
+		PriceData.Add(Price);
 	}
 
-	// Call only after all price updates are executed
-	void UpdateCorrelations() 
+	double GetPrice()
 	{
-		if (CorrelatedProcesses.Num() == 0)
-		{
-			AdjustSupplyDemand();
-			return;
-		}
-
-		double Difference = 0;
-		for (const auto& [Wiener, Rho] : CorrelatedProcesses)
-		{
-			if (!Wiener)
-				continue;
-
-			Difference += (Wiener->GetPrice() - Price) * Rho;
-		}
-
-		//Difference *= CorrelationMultiplier;
-
-		double CorrelationChange = GaussianRandom(Difference, 1 - Volatility) * CorrelationMultiplier;
-		Change += CorrelationChange;
-		Price += CorrelationChange;
-
-		if (ResourceType == EResourceType::Ore)
-			LogChange();
-
-		AdjustSupplyDemand();
+		return Price;
 	}
 
-	FORCEINLINE void SetControllerSupply(float InVal) 
+	const TArray<double>& GetPriceData()
 	{
-		ControllerSupply = InVal;
-	}
-
-	FORCEINLINE void SetControllerDemand(float InVal)
-	{
-		ControllerDemand = InVal;
-	}
-
-	FORCEINLINE void SetWorldSupply(float InVal)
-	{
-		WorldSupply = InVal;
-		if (ResourceType == EResourceType::Ore)
-		{
-			LOG_INFO("%f", WorldSupply)
-		}
-	}
-
-	FORCEINLINE void SetWorldDemand(float InVal)
-	{
-		WorldDemand = InVal;
-		if (ResourceType == EResourceType::Ore)
-		{
-			LOG_INFO("%f", WorldDemand)
-		}
-	}
-
-	float GetPrice() const
-	{
-		return (float)Price;
-	}
-
-	void AddCorrelation(const FWienerProcess& Process, float Rho)
-	{
-		CorrelatedProcesses.Add(&Process, Rho);
+		return PriceData;
 	}
 
 private:
-	void LogChange()
-	{
-		UEnum* ResourceEnum = FindObject<UEnum>(ANY_PACKAGE, TEXT("EResourceType"), true);
-		if (!ResourceEnum) return;
-
-		ChangeData.Add(Change);
-
-		if (ChangeData.Num() > 30)
-			ChangeData.RemoveAt(0);
-
-		float Sum = 0;
-		
-		for (float C : ChangeData)
-			Sum += C;
-
-		Sum /= ChangeData.Num();
-		if (ResourceType == EResourceType::Ore)
-		{
-			LOG_INFO("Res change - Avr. Change: [%f], ResType: [%s]", Sum, *ResourceEnum->GetNameStringByValue((int32)ResourceType))
-		}
-	}
-
 	double GaussianRandom(float Mean, float StandDev) const
 	{
 		double u1 = 1.0 - (double)FMath::RandHelper64(RAND_MAX) / RAND_MAX;
 		double u2 = 1.0 - (double)FMath::RandHelper64(RAND_MAX) / RAND_MAX;
 
-		double randStdMormal = FMath::Sqrt(-2.0 * FMath::Loge(u1)) * FMath::Sin(2.0 * PI * u2);
+		double randStdMormal = FMath::Sqrt(-2.0 * FMath::Loge(u1)) * FMath::Cos(2.0 * PI * u2);
 
 		double randNormal = Mean + StandDev * randStdMormal;
 
 		return randNormal;
 	}
 
-	double SigmoidFunction(double Alpha)
+	void AddNewSupplyDemand()
 	{
-		double Base = 0.000001;
-		double XOffset = 0.5;
+		if (Price <= 0) return;
 
-		double Denominator = 1 + pow(Base, XOffset - Alpha);
+		constexpr float DemandMultiplier = 11.5f;
+		constexpr float SupplyMultiplier = 11.5f;
 
-		return 1 / Denominator;
-	}
+		const float PriceFloorMultiplier = OriginalPrice / (2 - Complexity);
+		const float PriceSeilingMultiplier = 1.35f;
 
-	void AdjustSupplyDemand()
-	{
-		float Modifier = 2.f;
 
-		float Alpha = Price / OriginalPrice / 0.2;
-		LOG_INFO("Alpha is: %f", Alpha);
+		float OneOver = PriceFloorMultiplier / Price / Price;
+		float DemandFinal = OneOver * DemandMultiplier;
 
-		if (Alpha <= 0)
-			Alpha = 0.000000001;
+		float Value = 4 * Price / OriginalPrice - 6 * PriceSeilingMultiplier;
+		float Eqv = FMath::Clamp(0.5 * Value * Value * Value + 2.2 * Value * Value + 3.3 * Value + 5 - 7.5 * Complexity, 0, MAX_FLT);
+		float SupplyFinal = Eqv * SupplyMultiplier;
 
-		WorldDemand -= 0.01 * pow(OldAlpha, -2) * Modifier;
-		WorldDemand += 0.01 * pow(Alpha, -2) * Modifier;
-
-		OldAlpha = Alpha;
+		WorldDemand += DemandFinal;
+		WorldSupply += SupplyFinal;
 	}
 
 private:
-
-	// Market
-	float Volatility = 0.0f;
-	float Inflation = 0.0f;
-
 	// Weights
-	float InflationImpactMultiplier = 0.0f;
-	float SupplyDemandMultiplier = 0.1f;
-	float PriceChangeMultiplier = 0.5f;
-	float CorrelationMultiplier = 0.0f;
+	float PriceChangeMultiplier = 0.05f;
+	float SupplyDemandMeanWeight = 0.075f;
+	float PlayerSupplyDemandWeight = 0.005f;
 
 	// Wiener
+	// Tells how complex the resource is this has inpact on how the market responds to the changes in price
+	float Complexity;
 
 	float ControllerDemand;
 	float ControllerSupply;
 
-	float WorldDemand;
-	float WorldSupply;
+	double WorldDemand; // 100 000 000
+	double WorldSupply; // 100 000 000
 
-	double Change;
-	double Price;
+	// Used for reseting Supply and Demand values
+	double OriginalWorldDemand;
+	double OriginalWorldSupply;
 
-	double OriginalPrice;
-	float OldAlpha;
-
+	// Type of the resource 
 	EResourceType ResourceType;
 
-	TMap<const FWienerProcess*, float> CorrelatedProcesses;
-	TArray<float> ChangeData;
+	// Actual price of the resource
+	double Price;
+
+	// Used to anchor the price 
+	double OriginalPrice;
+
+	// Stores the price data
+	TArray<double> PriceData;
+	
+
+	// TODO: Correlation
 };
 
 UCLASS()
@@ -292,16 +237,27 @@ public:
 	void SetTimeSpeedModifier(float Value);
 
 	//Stops the in-game date system 
+	UFUNCTION(BlueprintCallable)
 	void PauseTime();
 
 	//Returns the in-game date system to its previous speed
+	UFUNCTION(BlueprintCallable)
 	void ResumeTime();
+
+	UFUNCTION(BlueprintCallable)
+	bool IsTimePaused();
 
 	UFUNCTION(BlueprintCallable)
 	FString GetDisplayTimeString();
 
 	UFUNCTION(BlueprintCallable)
 	float GetPlayerMoney();
+
+	UFUNCTION(BlueprintCallable)
+	int32 GetResourcePrice(EResourceType Resource);
+
+	UFUNCTION(BlueprintCallable)
+	const TArray<double> GetResourcePriceData(EResourceType Resource);
 
 protected:
 	virtual void BeginPlay() override;

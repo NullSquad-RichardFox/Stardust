@@ -61,6 +61,16 @@ void AGameFramework::DayUpdate()
 	StockMarket();
 }
 
+int32 AGameFramework::GetResourcePrice(EResourceType Resource)
+{
+	return (int32)ResourcePriceProcesses.FindRef(Resource).GetPrice();
+}
+
+const TArray<double> AGameFramework::GetResourcePriceData(EResourceType Resource)
+{
+	return ResourcePriceProcesses.FindRef(Resource).GetPriceData();
+}
+
 void AGameFramework::MonthUpdate()
 {
 	MonthUpdateEvent.Broadcast();
@@ -250,6 +260,11 @@ void AGameFramework::ResumeTime()
 	}
 }
 
+bool AGameFramework::IsTimePaused()
+{
+	return TimeSpeedMultiplier == 0;
+}
+
 
 const FGameTimerData* AGameFramework::SetTimer(UObject* Object, FName FunctionName, int32 NumDays, bool bLoop)
 {
@@ -305,15 +320,12 @@ void AGameFramework::UpdateTimers()
 void AGameFramework::StockMarket()
 {
 	for (TPair<EResourceType, FWienerProcess>& Process : ResourcePriceProcesses)
-		Process.Value.UpdatePrice();
-
-	for (TPair<EResourceType, FWienerProcess>& Process : ResourcePriceProcesses)
-		Process.Value.UpdateCorrelations();
+		Process.Value.UpdatePrice(GameplayTime);
 
 	UEnum* ResourceEnum = FindObject<UEnum>(ANY_PACKAGE, TEXT("EResourceType"), true);
 	if (!ResourceEnum) return;
 
-	for (const auto& [ResType, Process] : ResourcePriceProcesses)
+	/*for (const auto& [ResType, Process] : ResourcePriceProcesses)
 	{
 		if (ResType != EResourceType::Ore) continue;
 
@@ -333,7 +345,7 @@ void AGameFramework::StockMarket()
 			if (ResourcePriceProcesses[CorrRes].GetPrice() > Process.GetPrice())
 				LOG_ERROR("Correlated resource has higher price then origin - CorrResPrice: [%f], CorrRes: [%s] - OriginPrice: [%f], OriginResource: [%s]", ResourcePriceProcesses[CorrRes].GetPrice() , *ResourceEnum->GetNameStringByValue((int32)CorrRes), Process.GetPrice(), *ResourceEnum->GetNameStringByValue((int32)ResType))
 		}
-	}
+	}*/
 }
 
 void AGameFramework::SetUpWienerProcesses()
@@ -349,10 +361,7 @@ void AGameFramework::SetUpWienerProcesses()
 		if (!Data)
 			return;
 
-		FWienerProcess Process(Data->WorldDemand, Data->WorldSupply, Data->Price, ResourceType);
-		for (const auto& [CorrelatedRes, Rho] : Data->CorrelatedProcesses)
-			Process.AddCorrelation(ResourcePriceProcesses.FindOrAdd(CorrelatedRes), Rho);
-
+		FWienerProcess Process(Data->WorldDemand, Data->WorldSupply, Data->Price, ResourceType, 0.0);
 		ResourcePriceProcesses.FindOrAdd(ResourceType) = Process;
 	}
 }

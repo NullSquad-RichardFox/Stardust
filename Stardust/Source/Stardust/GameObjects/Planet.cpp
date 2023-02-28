@@ -257,18 +257,22 @@ void APlanet::GeneratePlanetaryFeature(int32 FeatureIndex)
 	} while (bGenerated && Feature->bMultiple);
 }
 
-bool APlanet::ColonizePlanet(APlayerCorporation* Corporation)
+bool APlanet::ColonizePlanet(APlayerCorporation* InCorporation)
 {
-	if (!Corporation) return false;
+	if (!InCorporation) return false;
 
 	float Dist;
 
-	PlanetCorporation = Corporation;
-	PlanetCorporation.GetValue()->GetClosestPlanet(this, Dist);
+	Corporation = InCorporation;
 
-	if (!PlanetCorporation.GetValue()->Purchase(FMath::FloorToFloat(5 * Dist))) return false;
+	APlayerCorporation* PlanetCorporation = Cast<APlayerCorporation>(Corporation.GetValue());
+	if (!PlanetCorporation) return false;
 
-	int32 Index = PlanetCorporation.GetValue()->AddPlanet(this);
+	PlanetCorporation->GetClosestPlanet(this, Dist);
+
+	if (!PlanetCorporation->Purchase(FMath::FloorToFloat(5 * Dist))) return false;
+
+	int32 Index = PlanetCorporation->AddPlanet(this);
 
 	if (AGameFramework* GameMode = Cast<AGameFramework>(GetWorld()->GetAuthGameMode()))
 	{
@@ -363,11 +367,11 @@ bool APlanet::PopulateJob(int32 BuildSlotIndex)
 
 const UBuildRequest* APlanet::BuildBuilding(int32 BuildSlotIndex, EBuildingType BuildingType)
 {
-	if (!PlanetCorporation.IsSet()) return nullptr;
+	if (!Corporation.IsSet()) return nullptr;
 	if (!BuildSlots.IsValidIndex(BuildSlotIndex)) return nullptr;
 
 	const FBuildingData* Data = UStructDataLibrary::GetData(BuildingType);
-	APlayerCorporation* PlayerCorp = Cast<APlayerCorporation>(PlanetCorporation.GetValue());
+	APlayerCorporation* PlayerCorp = Cast<APlayerCorporation>(Corporation.GetValue());
 
 	if (!Data) return nullptr;
 	if (!PlayerCorp) return nullptr;
@@ -402,11 +406,11 @@ const UBuildRequest* APlanet::BuildBuilding(int32 BuildSlotIndex, EBuildingType 
 
 const UBuildRequest* APlanet::BuildDistrict(int32 BuildSlotIndex, EDistrictType DistrictType)
 {
-	if (!PlanetCorporation.IsSet()) return nullptr;
+	if (!Corporation.IsSet()) return nullptr;
 	if (!BuildSlots.IsValidIndex(BuildSlotIndex)) return nullptr;
 
 	const FDistrictData* Data = UStructDataLibrary::GetData(DistrictType, 1);
-	APlayerCorporation* PlayerCorp = Cast<APlayerCorporation>(PlanetCorporation.GetValue());
+	APlayerCorporation* PlayerCorp = Cast<APlayerCorporation>(Corporation.GetValue());
 
 	if (!Data) return nullptr;
 	if (!PlayerCorp) return nullptr;
@@ -442,11 +446,11 @@ const UBuildRequest* APlanet::BuildDistrict(int32 BuildSlotIndex, EDistrictType 
 
 const UBuildRequest* APlanet::UpgradeDistrict(int32 BuildSlotIndex)
 {
-	if (!PlanetCorporation.IsSet()) return nullptr;
+	if (!Corporation.IsSet()) return nullptr;
 	if (!BuildSlots.IsValidIndex(BuildSlotIndex)) return nullptr;
 
 	const FDistrictData* Data = UStructDataLibrary::GetData(BuildSlots[BuildSlotIndex].District.DistrictType, BuildSlots[BuildSlotIndex].District.DistrictTier + 1);
-	APlayerCorporation* PlayerCorp = Cast<APlayerCorporation>(PlanetCorporation.GetValue());
+	APlayerCorporation* PlayerCorp = Cast<APlayerCorporation>(Corporation.GetValue());
 
 	if (!Data) return nullptr;
 	if (!PlayerCorp) return nullptr;
@@ -479,7 +483,7 @@ const UBuildRequest* APlanet::UpgradeDistrict(int32 BuildSlotIndex)
 
 int32 APlanet::DowngradeDistrict(int32 BuildSlotIndex)
 {
-	if (!PlanetCorporation) return -1;
+	if (!Corporation) return -1;
 	if (!BuildSlots.IsValidIndex(BuildSlotIndex)) return -1;
 
 	return BuildSlots[BuildSlotIndex].District.DowngradeDistrict();
@@ -488,10 +492,12 @@ int32 APlanet::DowngradeDistrict(int32 BuildSlotIndex)
 void APlanet::CancelBuildingProcess(int32 RequestIndex)
 {
 	if (!BuildQueue.IsValidIndex(RequestIndex)) return;
+	if (!Corporation) return;
+
+	APlayerCorporation* PlanetCorporation = Cast<APlayerCorporation>(Corporation.GetValue());
 	if (!PlanetCorporation) return;
 
-
-	PlanetCorporation.GetValue()->Refund(BuildQueue[RequestIndex]->BuildCost);
+	PlanetCorporation->Refund(BuildQueue[RequestIndex]->BuildCost);
 	BuildQueue.RemoveAt(RequestIndex, 1, true);
 }
 

@@ -29,7 +29,7 @@ void UTradeRoutePicker::Load(AGameActor* RouteStartActor)
 
 	if (AGameFramework* GameMode = Cast<AGameFramework>(GetWorld()->GetAuthGameMode()))
 	{
-		GameMode->GetPathfinder().SetStartingActor(StartingActor);
+		GameMode->GetPathfinder().SetStartingActor(StartingActor, this);
 		GameMode->PauseTime();
 		GameMode->GetPathfinder().OnRouteUpdate.AddDynamic(this, &UTradeRoutePicker::OnRouteUpdate);
 
@@ -40,6 +40,16 @@ void UTradeRoutePicker::Load(AGameActor* RouteStartActor)
 	}
 
 	ResourceIndex = 0;
+}
+
+void UTradeRoutePicker::ActorClicked(AGameActor* InActor)
+{
+	if (!InActor->GetCorporation()) return;
+	
+	if (AGameFramework* GameMode = Cast<AGameFramework>(GetWorld()->GetAuthGameMode()))
+	{
+		GameMode->GetPathfinder().ActorClicked(InActor);
+	}
 }
 
 void UTradeRoutePicker::AddTradeRouteClicked()
@@ -60,6 +70,7 @@ void UTradeRoutePicker::AddTradeRouteClicked()
 		TradeRoute.FuelCosts = TotalFuel;
 		TradeRoute.DangerLevel = 0;
 		TradeRoute.Resources = Resources;
+		TradeRoute.TradedCredits = 0.f;
 
 		GameMode->SendTradeRoute(TradeRoute);
 	}

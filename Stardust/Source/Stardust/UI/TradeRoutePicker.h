@@ -20,6 +20,7 @@ class STARDUST_API UTradeRoutePicker : public UUserWidget
 	
 public:
 	void Load(AGameActor* RouteStartActor);
+	void ActorClicked(AGameActor* InActor);
 
 protected:
 	virtual void NativeOnInitialized() override;
